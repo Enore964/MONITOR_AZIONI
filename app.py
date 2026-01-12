@@ -44,34 +44,54 @@ if check_password():
 
     @st.cache_data(ttl=3600)
     def get_data():
-        usd_to_eur = get_exchange_rate()
+        # 1. Recuperiamo il cambio attuale Dollaro -> Euro
+        try:
+            # Ticker per il cambio: quanto vale 1 Dollaro in Euro
+            fx = yf.Ticker("USDEUR=X") 
+            usd_to_eur = float(fx.history(period="1d")['Close'].iloc[-1])
+        except:
+            usd_to_eur = 0.92 # Valore di emergenza se Yahoo non risponde
+
         data_list = []
         for isin, info in STOCKS.items():
             try:
                 stock = yf.Ticker(info["ticker"])
                 hist = stock.history(period="5d")
+                
                 if not hist.empty:
+                    # Prezzo grezzo (Euro per i titoli .MI, Dollari per URA)
                     raw_price = float(hist['Close'].dropna().iloc[-1])
                     
-                    # Se il titolo è USA, convertiamo il prezzo attuale in Euro
-                    last_price = raw_price * usd_to_eur if info["usa"] else raw_price
+                    # --- LOGICA DI CONVERSIONE ---
+                    if info["usa"]:
+                        # Se il titolo è americano (URA), trasformiamo il prezzo in Euro
+                        prezzo_attuale_eur = raw_price * usd_to_eur
+                    else:
+                        # Se è italiano (.MI), il prezzo è già in Euro
+                        prezzo_attuale_eur = raw_price
                     
-                    prezzo_acq = info["acquisto"]
+                    prezzo_acq_eur = info["acquisto"]
                     qta = info["quantita"]
                     
-                    valore_attuale = last_price * qta
-                    investito = prezzo_acq * qta
-                    resa_euro = valore_attuale - investito
+                    # --- CALCOLO RENDIMENTI (Tutto in Euro) ---
+                    investimento_iniziale = prezzo_acq_eur * qta
+                    valore_attuale_totale = prezzo_attuale_eur * qta
+                    utile_netto_eur = valore_attuale_totale - investimento_iniziale
+                    percentuale_resa = (utile_netto_eur / investimento_iniziale) * 100
                     
-                    # Calcolo variazione giornaliera
-                    prev_close_raw = hist['Close'].dropna().iloc[-2]
-                    var_giorno = ((raw_price - prev_close_raw) / prev_close_raw) * 100
+                    # Calcolo scostamento giornaliero (basato sul prezzo originale del mercato)
+                    prev_close = hist['Close'].dropna().iloc[-2]
+                    var_giorno_perc = ((raw_price - prev_close) / prev_close) * 100
                     
                     data_list.append({
-                        "Nome": info["nome"], "Ticker": info["ticker"], "Prezzo": last_price, 
-                        "Investito": investito, "ValoreTot": valore_attuale,
-                        "VarGiorno": var_giorno, "ResaEuro": resa_euro,
-                        "ResaPerc": (resa_euro / investito * 100)
+                        "Nome": info["nome"],
+                        "Prezzo_Eur": prezzo_attuale_eur,
+                        "Investito": investimento_iniziale,
+                        "ValoreTot": valore_attuale_totale,
+                        "ResaEuro": utile_netto_eur,
+                        "ResaPerc": percentuale_resa,
+                        "VarGiorno": var_giorno_perc,
+                        "Ticker": info["ticker"]
                     })
                 time.sleep(1)
             except: continue
@@ -105,6 +125,7 @@ if check_password():
     if st.sidebar.button("Log out"):
         st.session_state["password_correct"] = False
         st.rerun()
+
 
 
 
