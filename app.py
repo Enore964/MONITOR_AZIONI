@@ -22,10 +22,9 @@ def check_password():
 
 if check_password():
     # --- CONFIGURAZIONE TITOLI ---
-    # Per l'Uranio usiamo URA (USA) ma con un 'corr' (correzione) per portarlo al valore di Milano
     STOCKS = {
         "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 352.79, "quantita": 30, "nome": "Oro Fisico", "usa": False, "corr": 1.0}, 
-        "IE0003BJ2JS4": {"ticker": "URA", "acquisto": 48.68, "quantita": 200, "nome": "Uranio (Milano Adapt)", "usa": True, "corr": 1.165},  
+        "IE0003BJ2JS4": {"ticker": "URA", "acquisto": 48.68, "quantita": 200, "nome": "Uranio (Milano Adapt)", "usa": True, "corr": 1.162},  
         "IT0003856405": {"ticker": "LDO.MI", "acquisto": 59.855, "quantita": 200, "nome": "Leonardo", "usa": False, "corr": 1.0},  
         "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 1.9317, "quantita": 3000, "nome": "Expert AI", "usa": False, "corr": 1.0},   
         "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 36.6, "quantita": 250, "nome": "Avio Spazio", "usa": False, "corr": 1.0}    
@@ -48,8 +47,6 @@ if check_password():
                 hist = stock.history(period="5d")
                 if not hist.empty:
                     raw_price = float(hist['Close'].dropna().iloc[-1])
-                    
-                    # Calcolo prezzo in Euro con correzione per allineamento Milano
                     if info["usa"]:
                         prezzo_eur = (raw_price * usd_to_eur) * info["corr"]
                     else:
@@ -58,8 +55,6 @@ if check_password():
                     investito = info["acquisto"] * info["quantita"]
                     valore_tot = prezzo_eur * info["quantita"]
                     resa_eur = valore_tot - investito
-                    
-                    # Var Giorno (basata sul mercato nativo)
                     prev_c = hist['Close'].dropna().iloc[-2]
                     var_g = ((raw_price - prev_c) / prev_c) * 100
                     
@@ -83,7 +78,6 @@ if check_password():
             fig_gauge = go.Figure(go.Indicator(
                 mode = "gauge+number",
                 value = tot_u,
-                domain = {'x': [0, 1], 'y': [0, 1]},
                 title = {'text': "Utile Totale (€)", 'font': {'size': 24}},
                 gauge = {
                     'axis': {'range': [-5000, 5000]},
@@ -100,7 +94,6 @@ if check_password():
             st.metric("VALORE ATTUALE", f"€ {tot_u:.2f}", delta_color="normal" if tot_u>=0 else "inverse")
             st.divider()
 
-            # --- CICLO FOR (Assicurati che sia indentato così) ---
             for item in data:
                 color = "#28a745" if item['ResaEuro'] >= 0 else "#dc3545"
                 st.markdown(f"<h3 style='color: {color};'>{item['Nome']}</h3>", unsafe_allow_html=True)
@@ -110,21 +103,14 @@ if check_password():
                     c2.metric("Utile (€)", f"{item['ResaEuro']:.2f}", f"{item['ResaPerc']:.2f}%")
                     st.caption(f"Investito: € {item['Investito']:.2f} | Valore: € {item['ValoreTot']:.2f}")
 
-        # QUESTO ELIF DEVE ESSERE ALLINEATO ALL' "IF" INIZIALE
-        elif scelta == "📊 Grafici":
-            st.title("📊 Analisi Portafoglio")
-            # ... resto del codice dei grafici ...
-
         elif scelta == "📊 Grafici":
             st.title("📊 Analisi Portafoglio")
             
-            # 1. Grafico a Torta (Composizione del capitale)
             st.subheader("Distribuzione Capitale")
             fig_pie = px.pie(data, values='ValoreTot', names='Nome', hole=0.4)
             fig_pie.update_traces(textinfo='percent+label')
             st.plotly_chart(fig_pie, use_container_width=True)
 
-            # 2. Grafico a Barre (Resa in Euro per ogni titolo)
             st.subheader("Resa per Titolo (€)")
             fig_bar = px.bar(
                 data, 
@@ -134,18 +120,9 @@ if check_password():
                 color_continuous_scale=['red', 'green'],
                 text_auto='.2f'
             )
-            # Ruota i nomi se sono troppo lunghi per lo schermo del telefono
             fig_bar.update_layout(xaxis_tickangle=-45, showlegend=False)
             st.plotly_chart(fig_bar, use_container_width=True)
 
-
-
-
-
-
-
-
-
-
-
-
+    if st.sidebar.button("Log out"):
+        st.session_state["password_correct"] = False
+        st.rerun()
