@@ -10,130 +10,98 @@ PASSWORD_CORRETTA = "TuaPassword123"
 def check_password():
     if "password_correct" not in st.session_state:
         st.session_state["password_correct"] = False
-    if st.session_state["password_correct"]:
-        return True
+    if st.session_state["password_correct"]: return True
     st.title("🔒 Accesso Riservato")
-    password = st.text_input("Inserisci la password:", type="password")
+    password = st.text_input("Password:", type="password")
     if st.button("Accedi"):
         if password == PASSWORD_CORRETTA:
             st.session_state["password_correct"] = True
             st.rerun()
-        else:
-            st.error("❌ Password errata")
+        else: st.error("❌ Errata")
     return False
 
 if check_password():
     # --- CONFIGURAZIONE TITOLI ---
+    # Nota: Per l'Uranio ora usiamo "URA" (USA)
     STOCKS = {
-        "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 352.13, "quantita": 30, "nome": "Oro Fisico"}, 
-        "IE0003BJ2JS4": {"ticker": "U308.AS", "acquisto": 48.54, "quantita": 200, "nome": "Uranio (ETF)"},  
-        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 59.76, "quantita": 200, "nome": "Leonardo"},  
-        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 1.93, "quantita": 3000, "nome": "Expert AI"},   
-        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 36.55, "quantita": 250, "nome": "Avio Spazio"}    
+        "JE00B1VS3770": {"ticker": "PHAU.L", "acquisto": 180.00, "quantita": 10, "nome": "Oro Fisico", "usa": False}, 
+        "IE0003BJ2JS4": {"ticker": "URA", "acquisto": 28.50, "quantita": 50, "nome": "Uranio (USA Ticker)", "usa": True},  
+        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 15.50, "quantita": 100, "nome": "Leonardo", "usa": False},  
+        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 2.10, "quantita": 500, "nome": "Expert AI", "usa": False},   
+        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 12.00, "quantita": 80, "nome": "Avio Spazio", "usa": False}    
     }
 
-    st.set_page_config(page_title="Portfolio App", layout="centered")
+    st.sidebar.title("📱 Menu")
+    scelta = st.sidebar.radio("Vai a:", ["📋 Lista", "📊 Grafici"])
 
-    # --- MENU A TENDINA LATERALE ---
-    with st.sidebar:
-        st.title("📱 Navigazione")
-        scelta = st.radio("Vai a:", ["📋 Lista Titoli", "📊 Analisi Grafica"])
-        st.divider()
-        if st.button("🔄 Forza Aggiornamento"):
-            st.cache_data.clear()
-            st.rerun()
-        if st.button("🚪 Log out"):
-            st.session_state["password_correct"] = False
-            st.rerun()
+    @st.cache_data(ttl=3600)
+    def get_exchange_rate():
+        # Recupera il cambio Euro/Dollaro
+        try:
+            fx = yf.Ticker("EURUSD=X")
+            return 1 / fx.history(period="1d")['Close'].iloc[-1]
+        except: return 0.92 # Valore di backup se il cambio fallisce
 
-    @st.cache_data(ttl=600)
+    @st.cache_data(ttl=3600)
     def get_data():
+        usd_to_eur = get_exchange_rate()
         data_list = []
         for isin, info in STOCKS.items():
             try:
                 stock = yf.Ticker(info["ticker"])
-                hist = stock.history(period="7d") # Aumentato a 7 giorni per sicurezza
-                
-                if hist.empty:
-                    # Se non trova dati, aggiunge un segnaposto invece di saltare
-                    st.sidebar.warning(f"Dati non trovati per {info['nome']} ({info['ticker']})")
-                    continue
-                
-                last_price = float(hist['Close'].dropna().iloc[-1])
-                # ... resto dei calcoli ...
-                data_list.append({
-                    "Nome": info["nome"],
-                    "Ticker": info["ticker"], 
-                    "Prezzo": last_price, 
-                    "Investito": info["acquisto"] * info["quantita"],
-                    "ValoreTot": last_price * info["quantita"],
-                    "VarGiorno": ((last_price - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2] * 100) if len(hist) > 1 else 0,
-                    "ResaEuro": (last_price * info["quantita"]) - (info["acquisto"] * info["quantita"]),
-                    "ResaPerc": ((last_price - info["acquisto"]) / info["acquisto"] * 100)
-                })
-            except Exception as e:
-                st.sidebar.error(f"Errore su {info['nome']}: {e}")
-                continue
+                hist = stock.history(period="5d")
+                if not hist.empty:
+                    raw_price = float(hist['Close'].dropna().iloc[-1])
+                    
+                    # Se il titolo è USA, convertiamo il prezzo attuale in Euro
+                    last_price = raw_price * usd_to_eur if info["usa"] else raw_price
+                    
+                    prezzo_acq = info["acquisto"]
+                    qta = info["quantita"]
+                    
+                    valore_attuale = last_price * qta
+                    investito = prezzo_acq * qta
+                    resa_euro = valore_attuale - investito
+                    
+                    # Calcolo variazione giornaliera
+                    prev_close_raw = hist['Close'].dropna().iloc[-2]
+                    var_giorno = ((raw_price - prev_close_raw) / prev_close_raw) * 100
+                    
+                    data_list.append({
+                        "Nome": info["nome"], "Ticker": info["ticker"], "Prezzo": last_price, 
+                        "Investito": investito, "ValoreTot": valore_attuale,
+                        "VarGiorno": var_giorno, "ResaEuro": resa_euro,
+                        "ResaPerc": (resa_euro / investito * 100)
+                    })
+                time.sleep(1)
+            except: continue
         return data_list
 
     data = get_data()
 
     if data:
-        tot_investito = sum(item['Investito'] for item in data)
-        tot_attuale = sum(item['ValoreTot'] for item in data)
-        tot_utile_euro = tot_attuale - tot_investito
-        tot_utile_perc = (tot_utile_euro / tot_investito) * 100 if tot_investito > 0 else 0
-
-        if scelta == "📋 Lista Titoli":
-            st.title("📋 I Tuoi Titoli")
+        if scelta == "📋 Lista":
+            st.title("📋 Portafoglio")
+            tot_utile = sum(item['ResaEuro'] for item in data)
+            st.metric("UTILE TOTALE", f"€ {tot_utile:.2f}")
             
-            # Header Totale
-            st.metric("UTILE TOTALE", f"€ {tot_utile_euro:.2f}", f"{tot_utile_perc:.2f}%")
-            st.divider()
-
             for item in data:
-                # Colore dinamico per il nome
-                colore = "#28a745" if item['ResaEuro'] >= 0 else "#dc3545"
-                st.markdown(f"<h3 style='color: {colore};'>{item['Nome']}</h3>", unsafe_allow_html=True)
-                
+                color = "#28a745" if item['ResaEuro'] >= 0 else "#dc3545"
+                st.markdown(f"<h3 style='color: {color};'>{item['Nome']}</h3>", unsafe_allow_html=True)
                 with st.container(border=True):
                     c1, c2 = st.columns(2)
-                    c1.metric("Prezzo", f"€ {item['Prezzo']:.3f}", f"{item['VarGiorno']:.2f}%")
-                    c2.metric("Utile", f"€ {item['ResaEuro']:.2f}", f"{item['ResaPerc']:.2f}%")
-                    st.caption(f"Valore: € {item['ValoreTot']:,.2f} | Ticker: {item['Ticker']}")
-
-        elif scelta == "📊 Analisi Grafica":
-            st.title("📊 Analisi Portafoglio")
+                    c1.metric("Prezzo (€)", f"{item['Prezzo']:.2f}", f"{item['VarGiorno']:.2f}%")
+                    c2.metric("Resa (€)", f"{item['ResaEuro']:.2f}", f"{item['ResaPerc']:.2f}%")
+        
+        elif scelta == "📊 Grafici":
+            st.title("📊 Analisi")
+            fig = px.pie(data, values='ValoreTot', names='Nome', hole=0.4, title="Composizione")
+            st.plotly_chart(fig)
             
-            # 1. Grafico Torta (Composizione)
-            st.subheader("Distribuzione Capitale")
-            fig_pie = px.pie(data, values='ValoreTot', names='Nome', hole=0.4)
-            st.plotly_chart(fig_pie, use_container_width=True)
-            
+            fig_bar = px.bar(data, x='Nome', y='ResaEuro', color='ResaEuro', 
+                             color_continuous_scale=['red', 'green'], title="Utile per Titolo")
+            st.plotly_chart(fig_bar)
 
-            # 2. Grafico Barre (Utili per Titolo)
-            st.subheader("Confronto Utili (€)")
-            fig_bar = px.bar(data, x='Nome', y='ResaEuro', 
-                             color='ResaEuro', 
-                             color_continuous_scale=['red', 'green'])
-            st.plotly_chart(fig_bar, use_container_width=True)
-            
-
-            # 3. Gauge Totale
-            st.subheader("Salute Portafoglio")
-            fig_gauge = go.Figure(go.Indicator(
-                mode = "gauge+number",
-                value = tot_utile_euro,
-                title = {'text': "Utile Totale (€)"},
-                gauge = {'bar': {'color': "green" if tot_utile_euro >= 0 else "red"}}
-            ))
-            fig_gauge.update_layout(height=300)
-            st.plotly_chart(fig_gauge, use_container_width=True)
-
-    else:
-        st.error("Dati non disponibili.")
-
-
-
-
-
+    if st.sidebar.button("Log out"):
+        st.session_state["password_correct"] = False
+        st.rerun()
