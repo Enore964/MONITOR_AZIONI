@@ -28,7 +28,7 @@ if check_password():
         "IE0003BJ2JS4": {"ticker": "URA", "acquisto": 48.54, "quantita": 200, "nome": "Uranio (USA Ticker)", "usa": True},  
         "IT0003856405": {"ticker": "LDO.MI", "acquisto": 59.76, "quantita": 200, "nome": "Leonardo", "usa": False},  
         "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 1.93, "quantita": 3000, "nome": "Expert AI", "usa": False},   
-        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 36.55, "quantita": 3000, "nome": "Avio Spazio", "usa": False}    
+        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 36.55, "quantita": 250, "nome": "Avio Spazio", "usa": False}    
     }
 
     st.sidebar.title("📱 Menu")
@@ -105,4 +105,5 @@ if check_password():
     if st.sidebar.button("Log out"):
         st.session_state["password_correct"] = False
         st.rerun()
+
 
