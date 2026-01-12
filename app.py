@@ -25,10 +25,10 @@ def check_password():
 if check_password():
     # Elenco ISIN aggiornato dai tuoi appunti
     STOCKS = {
-        "JE00B1VS3770": "PHAU.MI",   # WisdomTree Gold
-        "IE0003BJ2JS4": "NCLR.MI",   # WisdomTree Uranium
+        "JE00B1VS3770": "PHAU.L",    # Oro (Londra - molto più stabile su Yahoo)
+        "IE0003BJ2JS4": "NCLR.MI",   # Uranio
         "IT0003856405": "LDO.MI",    # Leonardo
-        "IT0004496029": "EXAI.BIT",  # Expert.ai (Proviamo il suffisso .BIT o .MI)
+        "IT0004496029": "EXAI.MI",   # Expert.ai
         "IT0005119810": "AVIO.MI"    # Avio
     }
 
@@ -77,4 +77,5 @@ if check_password():
         fig = go.Figure(data=[go.Scatter(x=df_hist.index, y=df_hist['Close'], line=dict(color='#00ffcc'))])
         fig.update_layout(template="plotly_dark", height=400, margin=dict(l=10, r=10, t=10, b=10))
         st.plotly_chart(fig, use_container_width=True)
+
 
