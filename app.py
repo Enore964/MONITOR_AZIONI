@@ -24,7 +24,7 @@ if check_password():
     # --- CONFIGURAZIONE TITOLI ---
     STOCKS = {
         "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 352.79, "quantita": 30, "nome": "Oro Fisico", "usa": False, "corr": 1.0}, 
-        "IE0003BJ2JS4": {"ticker": "URA", "acquisto": 48.68, "quantita": 200, "nome": "Uranio (Milano Adapt)", "usa": True, "corr": 1.17},  
+        "IE0003BJ2JS4": {"ticker": "URA", "acquisto": 48.68, "quantita": 200, "nome": "Uranio (Milano Adapt)", "usa": True, "corr": 1.12},  
         "IT0003856405": {"ticker": "LDO.MI", "acquisto": 59.855, "quantita": 200, "nome": "Leonardo", "usa": False, "corr": 1.0},  
         "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 1.9317, "quantita": 3000, "nome": "Expert AI", "usa": False, "corr": 1.0},   
         "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 36.6, "quantita": 250, "nome": "Avio Spazio", "usa": False, "corr": 1.0}    
@@ -135,6 +135,7 @@ if check_password():
     if st.sidebar.button("Log out"):
         st.session_state["password_correct"] = False
         st.rerun()
+
 
 
 
