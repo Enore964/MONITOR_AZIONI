@@ -5,7 +5,7 @@ import plotly.express as px
 import time
 
 # --- CONFIGURAZIONE SICUREZZA ---
-PASSWORD_CORRETTA = "TuaPassword123"
+PASSWORD_CORRETTA = "1"
 
 def check_password():
     if "password_correct" not in st.session_state:
@@ -98,4 +98,5 @@ if check_password():
     if st.sidebar.button("Log out"):
         st.session_state["password_correct"] = False
         st.rerun()
+
 
