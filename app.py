@@ -24,11 +24,11 @@ if check_password():
     # --- CONFIGURAZIONE TITOLI ---
     # Nota: Per l'Uranio ora usiamo "URA" (USA)
     STOCKS = {
-        "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 352.13, "quantita": 30, "nome": "Oro Fisico", "usa": False}, 
-        "IE0003BJ2JS4": {"ticker": "URA", "acquisto": 48.54, "quantita": 200, "nome": "Uranio (USA Ticker)", "usa": True},  
-        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 59.76, "quantita": 200, "nome": "Leonardo", "usa": False},  
-        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 1.93, "quantita": 3000, "nome": "Expert AI", "usa": False},   
-        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 36.55, "quantita": 250, "nome": "Avio Spazio", "usa": False}    
+        "JE00B1VS3770": {"ticker": "PHAU.L", "acquisto": 180.00, "quantita": 10, "nome": "Oro Fisico", "usa": False}, 
+        "IE0003BJ2JS4": {"ticker": "URA", "acquisto": 28.50, "quantita": 50, "nome": "Uranio (USA Ticker)", "usa": True},  
+        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 15.50, "quantita": 100, "nome": "Leonardo", "usa": False},  
+        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 2.10, "quantita": 500, "nome": "Expert AI", "usa": False},   
+        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 12.00, "quantita": 80, "nome": "Avio Spazio", "usa": False}    
     }
 
     st.sidebar.title("📱 Menu")
@@ -44,54 +44,34 @@ if check_password():
 
     @st.cache_data(ttl=3600)
     def get_data():
-        # 1. Recuperiamo il cambio attuale Dollaro -> Euro
-        try:
-            # Ticker per il cambio: quanto vale 1 Dollaro in Euro
-            fx = yf.Ticker("USDEUR=X") 
-            usd_to_eur = float(fx.history(period="1d")['Close'].iloc[-1])
-        except:
-            usd_to_eur = 0.92 # Valore di emergenza se Yahoo non risponde
-
+        usd_to_eur = get_exchange_rate()
         data_list = []
         for isin, info in STOCKS.items():
             try:
                 stock = yf.Ticker(info["ticker"])
                 hist = stock.history(period="5d")
-                
                 if not hist.empty:
-                    # Prezzo grezzo (Euro per i titoli .MI, Dollari per URA)
                     raw_price = float(hist['Close'].dropna().iloc[-1])
                     
-                    # --- LOGICA DI CONVERSIONE ---
-                    if info["usa"]:
-                        # Se il titolo è americano (URA), trasformiamo il prezzo in Euro
-                        prezzo_attuale_eur = raw_price * usd_to_eur
-                    else:
-                        # Se è italiano (.MI), il prezzo è già in Euro
-                        prezzo_attuale_eur = raw_price
+                    # Se il titolo è USA, convertiamo il prezzo attuale in Euro
+                    last_price = raw_price * usd_to_eur if info["usa"] else raw_price
                     
-                    prezzo_acq_eur = info["acquisto"]
+                    prezzo_acq = info["acquisto"]
                     qta = info["quantita"]
                     
-                    # --- CALCOLO RENDIMENTI (Tutto in Euro) ---
-                    investimento_iniziale = prezzo_acq_eur * qta
-                    valore_attuale_totale = prezzo_attuale_eur * qta
-                    utile_netto_eur = valore_attuale_totale - investimento_iniziale
-                    percentuale_resa = (utile_netto_eur / investimento_iniziale) * 100
+                    valore_attuale = last_price * qta
+                    investito = prezzo_acq * qta
+                    resa_euro = valore_attuale - investito
                     
-                    # Calcolo scostamento giornaliero (basato sul prezzo originale del mercato)
-                    prev_close = hist['Close'].dropna().iloc[-2]
-                    var_giorno_perc = ((raw_price - prev_close) / prev_close) * 100
+                    # Calcolo variazione giornaliera
+                    prev_close_raw = hist['Close'].dropna().iloc[-2]
+                    var_giorno = ((raw_price - prev_close_raw) / prev_close_raw) * 100
                     
                     data_list.append({
-                        "Nome": info["nome"],
-                        "Prezzo_Eur": prezzo_attuale_eur,
-                        "Investito": investimento_iniziale,
-                        "ValoreTot": valore_attuale_totale,
-                        "ResaEuro": utile_netto_eur,
-                        "ResaPerc": percentuale_resa,
-                        "VarGiorno": var_giorno_perc,
-                        "Ticker": info["ticker"]
+                        "Nome": info["nome"], "Ticker": info["ticker"], "Prezzo": last_price, 
+                        "Investito": investito, "ValoreTot": valore_attuale,
+                        "VarGiorno": var_giorno, "ResaEuro": resa_euro,
+                        "ResaPerc": (resa_euro / investito * 100)
                     })
                 time.sleep(1)
             except: continue
@@ -125,8 +105,3 @@ if check_password():
     if st.sidebar.button("Log out"):
         st.session_state["password_correct"] = False
         st.rerun()
-
-
-
-
-
