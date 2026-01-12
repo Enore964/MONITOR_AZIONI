@@ -52,32 +52,28 @@ if check_password():
         for isin, info in STOCKS.items():
             try:
                 stock = yf.Ticker(info["ticker"])
-                hist = stock.history(period="10d")
-                if not hist.empty:
-                    last_price = float(hist['Close'].dropna().iloc[-1])
-                    prezzo_acq = info["acquisto"]
-                    qta = info["quantita"]
-                    
-                    valid_closes = hist['Close'].dropna()
-                    var_giorno = ((last_price - valid_closes.iloc[-2]) / valid_closes.iloc[-2]) * 100 if len(valid_closes) >= 2 else 0.0
-                    
-                    valore_attuale = last_price * qta
-                    investito = prezzo_acq * qta
-                    resa_euro = valore_attuale - investito
-                    resa_perc = (resa_euro / investito) * 100 if investito > 0 else 0
-                    
-                    data_list.append({
-                        "Nome": info["nome"],
-                        "Ticker": info["ticker"], 
-                        "Prezzo": last_price, 
-                        "Investito": investito,
-                        "ValoreTot": valore_attuale,
-                        "VarGiorno": var_giorno,
-                        "ResaEuro": resa_euro,
-                        "ResaPerc": resa_perc
-                    })
-                time.sleep(0.2)
-            except: continue
+                hist = stock.history(period="7d") # Aumentato a 7 giorni per sicurezza
+                
+                if hist.empty:
+                    # Se non trova dati, aggiunge un segnaposto invece di saltare
+                    st.sidebar.warning(f"Dati non trovati per {info['nome']} ({info['ticker']})")
+                    continue
+                
+                last_price = float(hist['Close'].dropna().iloc[-1])
+                # ... resto dei calcoli ...
+                data_list.append({
+                    "Nome": info["nome"],
+                    "Ticker": info["ticker"], 
+                    "Prezzo": last_price, 
+                    "Investito": info["acquisto"] * info["quantita"],
+                    "ValoreTot": last_price * info["quantita"],
+                    "VarGiorno": ((last_price - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2] * 100) if len(hist) > 1 else 0,
+                    "ResaEuro": (last_price * info["quantita"]) - (info["acquisto"] * info["quantita"]),
+                    "ResaPerc": ((last_price - info["acquisto"]) / info["acquisto"] * 100)
+                })
+            except Exception as e:
+                st.sidebar.error(f"Errore su {info['nome']}: {e}")
+                continue
         return data_list
 
     data = get_data()
@@ -136,3 +132,4 @@ if check_password():
 
     else:
         st.error("Dati non disponibili.")
+
