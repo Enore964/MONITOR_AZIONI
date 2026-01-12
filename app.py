@@ -79,35 +79,41 @@ if check_password():
             st.title("📋 Portafoglio")
             tot_u = sum(item['ResaEuro'] for item in data)
             
-            # --- AGGIUNTA TACHIMETRO ---
+            # --- TACHIMETRO ---
             fig_gauge = go.Figure(go.Indicator(
                 mode = "gauge+number",
                 value = tot_u,
                 domain = {'x': [0, 1], 'y': [0, 1]},
                 title = {'text': "Utile Totale (€)", 'font': {'size': 24}},
                 gauge = {
-                    'axis': {'range': [-5000, 5000], 'tickwidth': 1}, # Puoi cambiare i limiti -5000 e 5000
+                    'axis': {'range': [-5000, 5000]},
                     'bar': {'color': "green" if tot_u >= 0 else "red"},
                     'steps': [
                         {'range': [-5000, 0], 'color': "#FFDDDD"},
                         {'range': [0, 5000], 'color': "#DDFFDD"}
-                    ],
-                    'threshold': {
-                        'line': {'color': "black", 'width': 4},
-                        'thickness': 0.75,
-                        'value': tot_u
-                    }
+                    ]
                 }
             ))
             fig_gauge.update_layout(height=300, margin=dict(l=20, r=20, t=50, b=20))
             st.plotly_chart(fig_gauge, use_container_width=True)
-            # ---------------------------
-
-            st.metric("VALORE NUMERICO", f"€ {tot_u:.2f}", delta_color="normal" if tot_u>=0 else "inverse")
+            
+            st.metric("VALORE ATTUALE", f"€ {tot_u:.2f}", delta_color="normal" if tot_u>=0 else "inverse")
             st.divider()
 
+            # --- CICLO FOR (Assicurati che sia indentato così) ---
             for item in data:
-                # ... resto del tuo codice per la lista titoli ...
+                color = "#28a745" if item['ResaEuro'] >= 0 else "#dc3545"
+                st.markdown(f"<h3 style='color: {color};'>{item['Nome']}</h3>", unsafe_allow_html=True)
+                with st.container(border=True):
+                    c1, c2 = st.columns(2)
+                    c1.metric("Prezzo (€)", f"{item['Prezzo_Eur']:.2f}", f"{item['VarGiorno']:.2f}%")
+                    c2.metric("Utile (€)", f"{item['ResaEuro']:.2f}", f"{item['ResaPerc']:.2f}%")
+                    st.caption(f"Investito: € {item['Investito']:.2f} | Valore: € {item['ValoreTot']:.2f}")
+
+        # QUESTO ELIF DEVE ESSERE ALLINEATO ALL' "IF" INIZIALE
+        elif scelta == "📊 Grafici":
+            st.title("📊 Analisi Portafoglio")
+            # ... resto del codice dei grafici ...
 
         elif scelta == "📊 Grafici":
             st.title("📊 Analisi Portafoglio")
@@ -131,6 +137,7 @@ if check_password():
             # Ruota i nomi se sono troppo lunghi per lo schermo del telefono
             fig_bar.update_layout(xaxis_tickangle=-45, showlegend=False)
             st.plotly_chart(fig_bar, use_container_width=True)
+
 
 
 
