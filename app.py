@@ -26,7 +26,7 @@ if check_password():
     # --- CONFIGURAZIONE TITOLI ---
     STOCKS = {
         "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 352.13, "quantita": 30, "nome": "Oro Fisico"}, 
-        "IE0003BJ2JS4": {"ticker": "49M.F", "acquisto": 48.54, "quantita": 200, "nome": "Uranio (ETF)"},  
+        "IE0003BJ2JS4": {"ticker": "U308.AS", "acquisto": 48.54, "quantita": 200, "nome": "Uranio (ETF)"},  
         "IT0003856405": {"ticker": "LDO.MI", "acquisto": 59.76, "quantita": 200, "nome": "Leonardo"},  
         "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 1.93, "quantita": 3000, "nome": "Expert AI"},   
         "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 36.55, "quantita": 250, "nome": "Avio Spazio"}    
@@ -132,6 +132,7 @@ if check_password():
 
     else:
         st.error("Dati non disponibili.")
+
 
 
 
