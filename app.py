@@ -41,24 +41,28 @@ if check_password():
         for isin, ticker in STOCKS.items():
             try:
                 stock = yf.Ticker(ticker)
-                # Chiediamo un periodo più lungo per essere sicuri di trovare dati
-                hist = stock.history(period="1mo") 
+                # Chiediamo gli ultimi 10 giorni per garantire di trovare almeno un prezzo
+                hist = stock.history(period="10d")
+                
                 if not hist.empty:
-                    last_price = hist['Close'].iloc[-1]
-                    # Se c'è solo un giorno di dati, mettiamo variazione 0 invece di saltare il titolo
-                    if len(hist) > 1:
-                        prev_close = hist['Close'].iloc[-2]
+                    last_price = float(hist['Close'].iloc[-1])
+                    
+                    # Calcoliamo la variazione solo se abbiamo almeno 2 giorni di dati
+                    if len(hist) >= 2:
+                        prev_close = float(hist['Close'].iloc[-2])
                         pct_change = ((last_price - prev_close) / prev_close) * 100
                     else:
-                        pct_change = 0.0
+                        pct_change = 0.0 # Se manca il dato storico, mostra 0% ma non sparire
                     
                     data_list.append({
                         "Ticker": ticker, 
-                        "Prezzo": float(last_price), 
-                        "Var": float(pct_change)
+                        "Prezzo": last_price, 
+                        "Var": pct_change
                     })
                 time.sleep(0.5) 
-            except Exception:
+            except Exception as e:
+                # Se c'è un errore critico su un titolo, lo scriviamo nei log ma non blocchiamo l'app
+                print(f"Errore su {ticker}: {e}")
                 continue
         return data_list
 
@@ -82,6 +86,7 @@ if check_password():
         fig = go.Figure(data=[go.Scatter(x=df_hist.index, y=df_hist['Close'], line=dict(color='#00ffcc'))])
         fig.update_layout(template="plotly_dark", height=400, margin=dict(l=10, r=10, t=10, b=10))
         st.plotly_chart(fig, use_container_width=True)
+
 
 
 
