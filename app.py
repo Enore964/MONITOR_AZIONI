@@ -5,7 +5,7 @@ import plotly.express as px
 import time
 
 # --- CONFIGURAZIONE SICUREZZA ---
-PASSWORD_CORRETTA = "1"
+PASSWORD_CORRETTA = "2"
 
 def check_password():
     if "password_correct" not in st.session_state:
@@ -112,6 +112,7 @@ if check_password():
             # Ruota i nomi se sono troppo lunghi per lo schermo del telefono
             fig_bar.update_layout(xaxis_tickangle=-45, showlegend=False)
             st.plotly_chart(fig_bar, use_container_width=True)
+
 
 
 
