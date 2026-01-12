@@ -25,11 +25,11 @@ def check_password():
 if check_password():
     # --- CONFIGURAZIONE TITOLI ---
     STOCKS = {
-        "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 180.00, "quantita": 10, "nome": "Oro Fisico"}, 
-        "IE0003BJ2JS4": {"ticker": "U3O8.L", "acquisto": 48.00, "quantita": 50, "nome": "Uranio (ETF)"},  
-        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 15.50, "quantita": 100, "nome": "Leonardo"},  
-        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 2.10, "quantita": 500, "nome": "Expert AI"},   
-        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 12.00, "quantita": 80, "nome": "Avio Spazio"}    
+        "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 352.13, "quantita": 30, "nome": "Oro Fisico"}, 
+        "IE0003BJ2JS4": {"ticker": "U3O8.L", "acquisto": 48.545, "quantita": 200, "nome": "Uranio (ETF)"},  
+        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 59.76, "quantita": 200, "nome": "Leonardo"},  
+        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 1.93, "quantita": 3000, "nome": "Expert AI"},   
+        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 36.55, "quantita": 250, "nome": "Avio Spazio"}    
     }
 
     st.set_page_config(page_title="Portfolio App", layout="centered")
@@ -132,4 +132,5 @@ if check_password():
 
     else:
         st.error("Dati non disponibili.")
+
 
