@@ -93,41 +93,43 @@ if check_password():
         elif scelta == "📊 Analisi Grafica":
             st.title("📊 Analisi Portafoglio")
             
-            # 1. Grafico Torta (Distribuzione Capitale)
-            st.subheader("Distribuzione Capitale")
-            fig_pie = px.pie(data, values='ValoreTot', names='Nome', hole=0.4,
-                             color_discrete_sequence=px.colors.qualitative.Pastel)
-            st.plotly_chart(fig_pie, use_container_width=True)
+            # Verifichiamo che ci siano dati
+            if data:
+                # 1. Grafico Torta (Distribuzione Capitale)
+                st.subheader("Distribuzione Capitale")
+                fig_pie = px.pie(
+                    data, 
+                    values='ValoreTot', 
+                    names='Nome', 
+                    hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Pastel
+                )
+                st.plotly_chart(fig_pie, use_container_width=True)
 
-            # 2. Grafico Barre (Utili/Perdite) - CORRETTO
-            st.subheader("Confronto Utili Reali (€)")
-            # Ordiniamo i dati per vedere chi guadagna di più
-            data_sorted = sorted(data, key=lambda x: x['ResaEuro'])
-            
-            fig_bar = px.bar(data_sorted, 
-                             x='Nome', 
-                             y='ResaEuro', 
-                             color='ResaEuro',
-                             text_auto='.2f', # Mostra il valore sopra la barra
-                             color_continuous_scale=['red', 'yellow', 'green'],
-                             labels={'ResaEuro': 'Utile Netto (€)'})
-            
-            # Miglioriamo l'estetica del grafico a barre
-            fig_bar.update_layout(showlegend=False)
-            st.plotly_chart(fig_bar, use_container_width=True)
+                # 2. Grafico Barre (Utili/Perdite)
+                st.subheader("Confronto Utili Reali (€)")
+                # Creiamo il grafico usando la lista 'data' che contiene già i calcoli corretti
+                fig_bar = px.bar(
+                    data, 
+                    x='Nome', 
+                    y='ResaEuro', 
+                    color='ResaEuro',
+                    color_continuous_scale=['red', 'green'],
+                    text_auto='.2f',
+                    labels={'ResaEuro': 'Utile (€)', 'Nome': 'Titolo'}
+                )
+                
+                # Layout per rendere il grafico più leggibile su mobile
+                fig_bar.update_layout(xaxis_tickangle=-45, showlegend=False)
+                st.plotly_chart(fig_bar, use_container_width=True)
 
-            # 3. Gauge di Salute Totale
-            st.subheader("Rendimento Totale")
-            tot_u = sum(item['ResaEuro'] for item in data)
-            fig_gauge = go.Figure(go.Indicator(
-                mode = "gauge+number+delta",
-                value = tot_u,
-                delta = {'reference': 0},
-                gauge = {'axis': {'range': [None, max(tot_u*2, 1000)]},
-                         'bar': {'color': "green" if tot_u >= 0 else "red"}}
-            ))
-            fig_gauge.update_layout(height=300)
-            st.plotly_chart(fig_gauge, use_container_width=True)
+                # 3. Riepilogo Numerico Rapido
+                st.divider()
+                tot_u = sum(item['ResaEuro'] for item in data)
+                st.metric("Utile Totale Complessivo", f"€ {tot_u:.2f}")
+            else:
+                st.error("Nessun dato disponibile per generare i grafici.")
+
 
 
 
