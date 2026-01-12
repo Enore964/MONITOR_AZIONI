@@ -90,13 +90,44 @@ if check_password():
                     c2.metric("Utile (€)", f"{item['ResaEuro']:.2f}", f"{item['ResaPerc']:.2f}%")
                     st.caption(f"Investito: € {item['Investito']:.2f} | Valore: € {item['ValoreTot']:.2f}")
 
-        elif scelta == "📊 Grafici":
-            st.title("📊 Analisi")
-            st.plotly_chart(px.pie(data, values='ValoreTot', names='Nome', hole=0.4))
-            st.plotly_chart(px.bar(data, x='Nome', y='ResaEuro', color='ResaEuro', color_continuous_scale=['red', 'green']))
+        elif scelta == "📊 Analisi Grafica":
+            st.title("📊 Analisi Portafoglio")
+            
+            # 1. Grafico Torta (Distribuzione Capitale)
+            st.subheader("Distribuzione Capitale")
+            fig_pie = px.pie(data, values='ValoreTot', names='Nome', hole=0.4,
+                             color_discrete_sequence=px.colors.qualitative.Pastel)
+            st.plotly_chart(fig_pie, use_container_width=True)
 
-    if st.sidebar.button("Log out"):
-        st.session_state["password_correct"] = False
-        st.rerun()
+            # 2. Grafico Barre (Utili/Perdite) - CORRETTO
+            st.subheader("Confronto Utili Reali (€)")
+            # Ordiniamo i dati per vedere chi guadagna di più
+            data_sorted = sorted(data, key=lambda x: x['ResaEuro'])
+            
+            fig_bar = px.bar(data_sorted, 
+                             x='Nome', 
+                             y='ResaEuro', 
+                             color='ResaEuro',
+                             text_auto='.2f', # Mostra il valore sopra la barra
+                             color_continuous_scale=['red', 'yellow', 'green'],
+                             labels={'ResaEuro': 'Utile Netto (€)'})
+            
+            # Miglioriamo l'estetica del grafico a barre
+            fig_bar.update_layout(showlegend=False)
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+            # 3. Gauge di Salute Totale
+            st.subheader("Rendimento Totale")
+            tot_u = sum(item['ResaEuro'] for item in data)
+            fig_gauge = go.Figure(go.Indicator(
+                mode = "gauge+number+delta",
+                value = tot_u,
+                delta = {'reference': 0},
+                gauge = {'axis': {'range': [None, max(tot_u*2, 1000)]},
+                         'bar': {'color': "green" if tot_u >= 0 else "red"}}
+            ))
+            fig_gauge.update_layout(height=300)
+            st.plotly_chart(fig_gauge, use_container_width=True)
+
 
 
