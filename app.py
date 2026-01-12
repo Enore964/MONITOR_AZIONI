@@ -40,13 +40,18 @@ if check_password():
         data_list = []
         for isin, ticker in STOCKS.items():
             try:
-                # Lasciamo che yfinance gestisca la connessione internamente
                 stock = yf.Ticker(ticker)
-                hist = stock.history(period="5d")
+                # Chiediamo un periodo più lungo per essere sicuri di trovare dati
+                hist = stock.history(period="1mo") 
                 if not hist.empty:
                     last_price = hist['Close'].iloc[-1]
-                    prev_close = hist['Close'].iloc[-2]
-                    pct_change = ((last_price - prev_close) / prev_close) * 100
+                    # Se c'è solo un giorno di dati, mettiamo variazione 0 invece di saltare il titolo
+                    if len(hist) > 1:
+                        prev_close = hist['Close'].iloc[-2]
+                        pct_change = ((last_price - prev_close) / prev_close) * 100
+                    else:
+                        pct_change = 0.0
+                    
                     data_list.append({
                         "Ticker": ticker, 
                         "Prezzo": float(last_price), 
@@ -77,5 +82,6 @@ if check_password():
         fig = go.Figure(data=[go.Scatter(x=df_hist.index, y=df_hist['Close'], line=dict(color='#00ffcc'))])
         fig.update_layout(template="plotly_dark", height=400, margin=dict(l=10, r=10, t=10, b=10))
         st.plotly_chart(fig, use_container_width=True)
+
 
 
