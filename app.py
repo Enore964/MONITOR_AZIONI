@@ -33,7 +33,7 @@ if check_password():
     st.sidebar.title("📱 Menu")
     scelta = st.sidebar.radio("Vai a:", ["📋 Lista", "📊 Grafici"])
 
-    @st.cache_data(ttl=3600)
+    @st.cache_data(ttl=300)
     def get_data():
         try:
             fx = yf.Ticker("USDEUR=X")
@@ -126,5 +126,6 @@ if check_password():
     if st.sidebar.button("Log out"):
         st.session_state["password_correct"] = False
         st.rerun()
+
 
 
