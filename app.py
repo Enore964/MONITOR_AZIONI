@@ -91,13 +91,28 @@ if check_password():
                     st.caption(f"Investito: € {item['Investito']:.2f} | Valore: € {item['ValoreTot']:.2f}")
 
         elif scelta == "📊 Grafici":
-            st.title("📊 Analisi")
-            st.plotly_chart(px.pie(data, values='ValoreTot', names='Nome', hole=0.4))
-            st.plotly_chart(px.bar(data, x='Nome', y='ResaEuro', color='ResaEuro', color_continuous_scale=['red', 'green']))
+            st.title("📊 Analisi Portafoglio")
+            
+            # 1. Grafico a Torta (Composizione del capitale)
+            st.subheader("Distribuzione Capitale")
+            fig_pie = px.pie(data, values='ValoreTot', names='Nome', hole=0.4)
+            fig_pie.update_traces(textinfo='percent+label')
+            st.plotly_chart(fig_pie, use_container_width=True)
 
-    if st.sidebar.button("Log out"):
-        st.session_state["password_correct"] = False
-        st.rerun()
+            # 2. Grafico a Barre (Resa in Euro per ogni titolo)
+            st.subheader("Resa per Titolo (€)")
+            fig_bar = px.bar(
+                data, 
+                x='Nome', 
+                y='ResaEuro', 
+                color='ResaEuro', 
+                color_continuous_scale=['red', 'green'],
+                text_auto='.2f'
+            )
+            # Ruota i nomi se sono troppo lunghi per lo schermo del telefono
+            fig_bar.update_layout(xaxis_tickangle=-45, showlegend=False)
+            st.plotly_chart(fig_bar, use_container_width=True)
+
 
 
 
