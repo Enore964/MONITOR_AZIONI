@@ -24,11 +24,11 @@ if check_password():
     # --- CONFIGURAZIONE TITOLI ---
     # Per l'Uranio usiamo URA (USA) ma con un 'corr' (correzione) per portarlo al valore di Milano
     STOCKS = {
-        "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 180.00, "quantita": 10, "nome": "Oro Fisico", "usa": False, "corr": 1.0}, 
-        "IE0003BJ2JS4": {"ticker": "URA", "acquisto": 48.00, "quantita": 50, "nome": "Uranio (Milano Adapt)", "usa": True, "corr": 1.16},  
-        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 15.50, "quantita": 100, "nome": "Leonardo", "usa": False, "corr": 1.0},  
-        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 2.10, "quantita": 500, "nome": "Expert AI", "usa": False, "corr": 1.0},   
-        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 12.00, "quantita": 80, "nome": "Avio Spazio", "usa": False, "corr": 1.0}    
+        "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 352.13, "quantita": 30, "nome": "Oro Fisico", "usa": False, "corr": 1.0}, 
+        "IE0003BJ2JS4": {"ticker": "URA", "acquisto": 48.54, "quantita": 200, "nome": "Uranio (Milano Adapt)", "usa": True, "corr": 1.16},  
+        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 59.75, "quantita": 200, "nome": "Leonardo", "usa": False, "corr": 1.0},  
+        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 1.93, "quantita": 3000, "nome": "Expert AI", "usa": False, "corr": 1.0},   
+        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 36.55, "quantita": 250, "nome": "Avio Spazio", "usa": False, "corr": 1.0}    
     }
 
     st.sidebar.title("📱 Menu")
@@ -98,3 +98,4 @@ if check_password():
     if st.sidebar.button("Log out"):
         st.session_state["password_correct"] = False
         st.rerun()
+
