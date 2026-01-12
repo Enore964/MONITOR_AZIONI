@@ -103,15 +103,24 @@ if check_password():
         if scelta == "📋 Lista":
             st.title("📋 Portafoglio")
             tot_utile = sum(item['ResaEuro'] for item in data)
-            st.metric("UTILE TOTALE", f"€ {tot_utile:.2f}")
+            
+            # Header Totale Colorato
+            colore_testo = "normal" if tot_utile >= 0 else "inverse"
+            st.metric("UTILE TOTALE PORTAFOGLIO", f"€ {tot_utile:.2f}", delta_color=colore_testo)
+            st.divider()
             
             for item in data:
-                color = "#28a745" if item['ResaEuro'] >= 0 else "#dc3545"
-                st.markdown(f"<h3 style='color: {color};'>{item['Nome']}</h3>", unsafe_allow_html=True)
+                # Determina colore in base alla resa dell'azione
+                colore_azione = "#28a745" if item['ResaEuro'] >= 0 else "#dc3545"
+                st.markdown(f"<h3 style='color: {colore_azione};'>{item['Nome']}</h3>", unsafe_allow_html=True)
+                
                 with st.container(border=True):
                     c1, c2 = st.columns(2)
-                    c1.metric("Prezzo (€)", f"{item['Prezzo']:.2f}", f"{item['VarGiorno']:.2f}%")
-                    c2.metric("Resa (€)", f"{item['ResaEuro']:.2f}", f"{item['ResaPerc']:.2f}%")
+                    # USIAMO I NOMI CORRETTI: 'Prezzo_Eur' e 'VarGiorno'
+                    c1.metric("Prezzo (€)", f"{item['Prezzo_Eur']:.2f}", f"{item['VarGiorno']:.2f}%")
+                    c2.metric("Utile (€)", f"{item['ResaEuro']:.2f}", f"{item['ResaPerc']:.2f}%")
+                    
+                    st.caption(f"Investito: € {item['Investito']:,.2f} | Valore: € {item['ValoreTot']:,.2f}")
         
         elif scelta == "📊 Grafici":
             st.title("📊 Analisi")
@@ -125,6 +134,7 @@ if check_password():
     if st.sidebar.button("Log out"):
         st.session_state["password_correct"] = False
         st.rerun()
+
 
 
 
