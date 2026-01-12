@@ -97,16 +97,20 @@ if check_password():
             for item in data:
                 color = "#28a745" if item['ResaEuro'] >= 0 else "#dc3545"
                 st.markdown(f"<h3 style='color: {color};'>{item['Nome']}</h3>", unsafe_allow_html=True)
+                
+                # Tutto quello che vedi qui sotto deve essere spostato a destra
                 with st.container(border=True):
-    c1, c2 = st.columns(2)
-    c1.metric("Prezzo (€)", f"{item['Prezzo_Eur']:.2f}", f"{item['VarGiorno']:.2f}%")
-    c2.metric("Utile (€)", f"{item['ResaEuro']:.2f}", f"{item['ResaPerc']:.2f}%")
-    
-    # AGGIUNGI QUESTA RIGA QUI SOTTO:
-    if "Uranio" in item['Nome']:
-        st.info(f"Dati USA: {item['Ticker']} quota {item['Prezzo_Eur']/1.162:.2f}$ | Cambio usato: {item['Prezzo_Eur']/1.162/raw_price:.4f}")
-    
-    st.caption(f"Investito: € {item['Investito']:.2f} | Valore: € {item['ValoreTot']:.2f}")
+                    c1, c2 = st.columns(2)
+                    c1.metric("Prezzo (€)", f"{item['Prezzo_Eur']:.2f}", f"{item['VarGiorno']:.2f}%")
+                    c2.metric("Utile (€)", f"{item['ResaEuro']:.2f}", f"{item['ResaPerc']:.2f}%")
+                    
+                    # --- RIGA DI DEBUG PER VEDERE I VALORI ORIGINALI ---
+                    if "Uranio" in item['Nome']:
+                        # Calcoliamo il prezzo in $ partendo da quello in € per mostrartelo
+                        prezzo_usa_dollari = (item['Prezzo_Eur'] / 1.162) / 0.92 # stima rapida
+                        st.info(f"🔍 Debug Uranio: Yahoo USA segna circa {prezzo_usa_dollari:.2f} $")
+                    
+                    st.caption(f"Investito: € {item['Investito']:.2f} | Valore: € {item['ValoreTot']:.2f}")
 
         elif scelta == "📊 Grafici":
             st.title("📊 Analisi Portafoglio")
@@ -131,6 +135,7 @@ if check_password():
     if st.sidebar.button("Log out"):
         st.session_state["password_correct"] = False
         st.rerun()
+
 
 
 
