@@ -1,6 +1,5 @@
 import streamlit as st
 import yfinance as yf
-import pandas as pd
 import time
 
 # --- CONFIGURAZIONE SICUREZZA ---
@@ -22,64 +21,69 @@ def check_password():
     return False
 
 if check_password():
-    # Titoli rigorosamente su Borsa Italiana (Milano)
+    # --- INSERISCI QUI I TUOI PREZZI DI ACQUISTO REALI ---
     STOCKS = {
-        "JE00B1VS3770": "PHAU.MI",   # Gold
-        "IE0003BJ2JS4": "NCLR.MI",   # Uranium
-        "IT0003856405": "LDO.MI",    # Leonardo
-        "IT0004496029": "EXAI.MI",   # Expert.ai
-        "IT0005119810": "AVIO.MI"    # Avio
+        "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 180.00}, # Oro
+        "IE0003BJ2JS4": {"ticker": "NCLR.MI", "acquisto": 48.00},  # Uranio
+        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 15.50},   # Leonardo
+        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 2.10},   # Expert.ai
+        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 12.00}   # Avio
     }
 
-    st.set_page_config(page_title="Monitor Prezzi", layout="centered")
-    
-    st.title("📈 Prezzi Milano")
-    st.caption(f"Ultimo aggiornamento: {time.strftime('%H:%M:%S')}")
+    st.set_page_config(page_title="Resa Portafoglio", layout="centered")
+    st.title("💰 Resa Portafoglio")
 
     @st.cache_data(ttl=600)
     def get_data():
         data_list = []
-        for isin, ticker in STOCKS.items():
+        for isin, info in STOCKS.items():
             try:
-                stock = yf.Ticker(ticker)
+                stock = yf.Ticker(info["ticker"])
                 hist = stock.history(period="5d")
                 if not hist.empty:
                     last_price = float(hist['Close'].iloc[-1])
-                    if len(hist) >= 2:
-                        prev_close = float(hist['Close'].iloc[-2])
-                        pct_change = ((last_price - prev_close) / prev_close) * 100
-                    else:
-                        pct_change = 0.0
+                    prezzo_acquisto = info["acquisto"]
+                    
+                    # Calcolo della resa rispetto al tuo acquisto
+                    resa_percentuale = ((last_price - prezzo_acquisto) / prezzo_acquisto) * 100
+                    guadagno_assoluto = last_price - prezzo_acquisto
                     
                     data_list.append({
-                        "Ticker": ticker, 
-                        "Prezzo": last_price, 
-                        "Var": pct_change
+                        "Ticker": info["ticker"], 
+                        "Attuale": last_price, 
+                        "Acquisto": prezzo_acquisto,
+                        "Resa": resa_percentuale,
+                        "Guadagno": guadagno_assoluto
                     })
                 time.sleep(0.3)
             except Exception:
                 continue
         return data_list
 
-    # Visualizzazione semplificata per mobile
     current_data = get_data()
     
     if current_data:
         for item in current_data:
-            # Crea un box per ogni titolo
             with st.container():
-                st.metric(
-                    label=item['Ticker'], 
-                    value=f"€ {item['Prezzo']:.3f}", 
-                    delta=f"{item['Var']:.2f}%"
-                )
+                col1, col2 = st.columns([2, 1])
+                with col1:
+                    st.subheader(item['Ticker'])
+                    st.write(f"Prezzo Acquisto: **€ {item['Acquisto']:.3f}**")
+                    st.write(f"Prezzo Attuale: **€ {item['Attuale']:.3f}**")
+                with col2:
+                    # Mostra la resa rispetto al tuo prezzo di acquisto
+                    st.metric(
+                        label="Resa Totale", 
+                        value=f"{item['Resa']:.2f}%",
+                        delta=f"€ {item['Guadagno']:.2f}"
+                    )
                 st.divider()
         
-        if st.button("🔄 Forza Aggiornamento"):
+        if st.button("🔄 Aggiorna Prezzi"):
             st.cache_data.clear()
             st.rerun()
     else:
-        st.error("Nessun dato disponibile. Riprova tra poco.")
+        st.error("Errore nel recupero dati.")
 
     if st.button("Log out"):
         st.session_state["password_correct"] = False
