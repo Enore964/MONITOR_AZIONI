@@ -21,17 +21,17 @@ def check_password():
     return False
 
 if check_password():
-    # --- INSERISCI QUI I TUOI PREZZI DI ACQUISTO REALI ---
+    # --- INSERISCI QUI I TUOI DATI REALI ---
     STOCKS = {
-        "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 180.00}, # Oro
-        "IE0003BJ2JS4": {"ticker": "NCLR.MI", "acquisto": 48.00},  # Uranio
-        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 15.50},   # Leonardo
-        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 2.10},   # Expert.ai
-        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 12.00}   # Avio
+        "JE00B1VS3770": {"ticker": "ORO", "acquisto": 180.00, "quantita": 30}, # Oro
+        "IE0003BJ2JS4": {"ticker": "NUCLEARE", "acquisto": 48.00, "quantita": 50},  # Uranio
+        "IT0003856405": {"ticker": "LEONARDO", "acquisto": 50.50, "quantita": 100},  # Leonardo
+        "IT0004496029": {"ticker": "AI ITALIA", "acquisto": 2.10, "quantita": 3000},   # Expert.ai
+        "IT0005119810": {"ticker": "AVIO", "acquisto": 12.00, "quantita": 200}    # Avio
     }
 
-    st.set_page_config(page_title="Monitor Avanzato", layout="centered")
-    st.title("📈 Monitor Portafoglio")
+    st.set_page_config(page_title="Gestione Portafoglio", layout="centered")
+    st.title("📊 Rendimento Portafoglio")
 
     @st.cache_data(ttl=600)
     def get_data():
@@ -42,26 +42,30 @@ if check_password():
                 hist = stock.history(period="5d")
                 if not hist.empty:
                     last_price = float(hist['Close'].iloc[-1])
-                    prezzo_acquisto = info["acquisto"]
+                    prezzo_acq = info["acquisto"]
+                    qta = info["quantita"]
                     
-                    # 1. Calcolo Scostamento Giornaliero (Rispetto a ieri)
+                    # Calcolo variazione giornaliera
                     if len(hist) >= 2:
                         prev_close = float(hist['Close'].iloc[-2])
-                        var_giornaliera = ((last_price - prev_close) / prev_close) * 100
+                        var_giorno = ((last_price - prev_close) / prev_close) * 100
                     else:
-                        var_giornaliera = 0.0
+                        var_giorno = 0.0
                     
-                    # 2. Calcolo Resa Totale (Rispetto al tuo acquisto)
-                    resa_totale = ((last_price - prezzo_acquisto) / prezzo_acquisto) * 100
-                    guadagno_assoluto = last_price - prezzo_acquisto
+                    # Calcolo Rendimento Totale
+                    valore_attuale = last_price * qta
+                    investimento_iniziale = prezzo_acq * qta
+                    resa_euro = valore_attuale - investimento_iniziale
+                    resa_perc = (resa_euro / investimento_iniziale) * 100 if investimento_iniziale != 0 else 0
                     
                     data_list.append({
                         "Ticker": info["ticker"], 
-                        "Attuale": last_price, 
-                        "Acquisto": prezzo_acquisto,
-                        "VarGiorno": var_giornaliera,
-                        "ResaTot": resa_totale,
-                        "Guadagno": guadagno_assoluto
+                        "Prezzo": last_price, 
+                        "Qta": qta,
+                        "ValoreTot": valore_attuale,
+                        "VarGiorno": var_giorno,
+                        "ResaEuro": resa_euro,
+                        "ResaPerc": resa_perc
                     })
                 time.sleep(0.3)
             except Exception:
@@ -71,33 +75,38 @@ if check_password():
     current_data = get_data()
     
     if current_data:
-        for item in current_data:
-            with st.expander(f"**{item['Ticker']}** - € {item['Attuale']:.3f}", expanded=True):
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    # Metrica per l'andamento di oggi
-                    st.metric(
-                        label="Oggi", 
-                        value=f"€ {item['Attuale']:.3f}", 
-                        delta=f"{item['VarGiorno']:.2f}% (24h)"
-                    )
-                
-                with col2:
-                    # Metrica per la resa dal tuo acquisto
-                    st.metric(
-                        label="Resa Totale", 
-                        value=f"{item['ResaTot']:.2f}%",
-                        delta=f"€ {item['Guadagno']:.2f}",
-                        delta_color="normal"
-                    )
-                st.caption(f"Prezzo medio acquisto: € {item['Acquisto']:.3f}")
+        # Calcolo Totale Portafoglio
+        totale_portafoglio = sum(item['ValoreTot'] for item in current_data)
+        totale_guadagno = sum(item['ResaEuro'] for item in current_data)
         
-        if st.button("🔄 Aggiorna Dati"):
+        # Header con riassunto totale
+        st.subheader("Riepilogo Totale")
+        c1, c2 = st.columns(2)
+        c1.metric("Valore Portafoglio", f"€ {totale_portafoglio:,.2f}")
+        c2.metric("Guadagno/Perdita Tot.", f"€ {totale_guadagno:,.2f}", delta=f"{totale_guadagno:,.2f}€")
+        st.divider()
+
+        # Dettaglio per ogni azione
+        for item in current_data:
+            with st.expander(f"**{item['Ticker']}** (Q.tà: {item['Qta']})", expanded=True):
+                col_a, col_b, col_c = st.columns(3)
+                
+                with col_a:
+                    st.metric("Prezzo", f"€{item['Prezzo']:.3f}", f"{item['VarGiorno']:.2f}%")
+                
+                with col_b:
+                    st.metric("Resa in €", f"€{item['ResaEuro']:.2f}")
+                
+                with col_c:
+                    st.metric("Resa %", f"{item['ResaPerc']:.2f}%")
+                
+                st.caption(f"Valore attuale posizione: € {item['ValoreTot']:,.2f}")
+        
+        if st.button("🔄 Aggiorna Prezzi"):
             st.cache_data.clear()
             st.rerun()
     else:
-        st.error("Errore nel recupero dati da Milano.")
+        st.error("Caricamento dati fallito.")
 
     if st.button("Log out"):
         st.session_state["password_correct"] = False
