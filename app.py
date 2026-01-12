@@ -30,8 +30,8 @@ if check_password():
         "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 12.00}   # Avio
     }
 
-    st.set_page_config(page_title="Resa Portafoglio", layout="centered")
-    st.title("💰 Resa Portafoglio")
+    st.set_page_config(page_title="Monitor Avanzato", layout="centered")
+    st.title("📈 Monitor Portafoglio")
 
     @st.cache_data(ttl=600)
     def get_data():
@@ -44,15 +44,23 @@ if check_password():
                     last_price = float(hist['Close'].iloc[-1])
                     prezzo_acquisto = info["acquisto"]
                     
-                    # Calcolo della resa rispetto al tuo acquisto
-                    resa_percentuale = ((last_price - prezzo_acquisto) / prezzo_acquisto) * 100
+                    # 1. Calcolo Scostamento Giornaliero (Rispetto a ieri)
+                    if len(hist) >= 2:
+                        prev_close = float(hist['Close'].iloc[-2])
+                        var_giornaliera = ((last_price - prev_close) / prev_close) * 100
+                    else:
+                        var_giornaliera = 0.0
+                    
+                    # 2. Calcolo Resa Totale (Rispetto al tuo acquisto)
+                    resa_totale = ((last_price - prezzo_acquisto) / prezzo_acquisto) * 100
                     guadagno_assoluto = last_price - prezzo_acquisto
                     
                     data_list.append({
                         "Ticker": info["ticker"], 
                         "Attuale": last_price, 
                         "Acquisto": prezzo_acquisto,
-                        "Resa": resa_percentuale,
+                        "VarGiorno": var_giornaliera,
+                        "ResaTot": resa_totale,
                         "Guadagno": guadagno_assoluto
                     })
                 time.sleep(0.3)
@@ -64,26 +72,32 @@ if check_password():
     
     if current_data:
         for item in current_data:
-            with st.container():
-                col1, col2 = st.columns([2, 1])
+            with st.expander(f"**{item['Ticker']}** - € {item['Attuale']:.3f}", expanded=True):
+                col1, col2 = st.columns(2)
+                
                 with col1:
-                    st.subheader(item['Ticker'])
-                    st.write(f"Prezzo Acquisto: **€ {item['Acquisto']:.3f}**")
-                    st.write(f"Prezzo Attuale: **€ {item['Attuale']:.3f}**")
+                    # Metrica per l'andamento di oggi
+                    st.metric(
+                        label="Oggi", 
+                        value=f"€ {item['Attuale']:.3f}", 
+                        delta=f"{item['VarGiorno']:.2f}% (24h)"
+                    )
+                
                 with col2:
-                    # Mostra la resa rispetto al tuo prezzo di acquisto
+                    # Metrica per la resa dal tuo acquisto
                     st.metric(
                         label="Resa Totale", 
-                        value=f"{item['Resa']:.2f}%",
-                        delta=f"€ {item['Guadagno']:.2f}"
+                        value=f"{item['ResaTot']:.2f}%",
+                        delta=f"€ {item['Guadagno']:.2f}",
+                        delta_color="normal"
                     )
-                st.divider()
+                st.caption(f"Prezzo medio acquisto: € {item['Acquisto']:.3f}")
         
-        if st.button("🔄 Aggiorna Prezzi"):
+        if st.button("🔄 Aggiorna Dati"):
             st.cache_data.clear()
             st.rerun()
     else:
-        st.error("Errore nel recupero dati.")
+        st.error("Errore nel recupero dati da Milano.")
 
     if st.button("Log out"):
         st.session_state["password_correct"] = False
