@@ -5,7 +5,7 @@ import plotly.express as px
 import time
 
 # --- CONFIGURAZIONE SICUREZZA ---
-PASSWORD_CORRETTA = "1"
+PASSWORD_CORRETTA = "TuaPassword123"
 
 def check_password():
     if "password_correct" not in st.session_state:
@@ -24,11 +24,11 @@ if check_password():
     # --- CONFIGURAZIONE TITOLI ---
     # Per l'Uranio usiamo URA (USA) ma con un 'corr' (correzione) per portarlo al valore di Milano
     STOCKS = {
-        "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 352.13, "quantita": 30, "nome": "Oro Fisico", "usa": False, "corr": 1.0}, 
-        "IE0003BJ2JS4": {"ticker": "URA", "acquisto": 48.54, "quantita": 200, "nome": "Uranio (Milano Adapt)", "usa": True, "corr": 1.162},  
-        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 59.76, "quantita": 200, "nome": "Leonardo", "usa": False, "corr": 1.0},  
-        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 1.93, "quantita": 3000, "nome": "Expert AI", "usa": False, "corr": 1.0},   
-        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 36.55, "quantita": 250, "nome": "Avio Spazio", "usa": False, "corr": 1.0}    
+        "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 180.00, "quantita": 10, "nome": "Oro Fisico", "usa": False, "corr": 1.0}, 
+        "IE0003BJ2JS4": {"ticker": "URA", "acquisto": 48.00, "quantita": 50, "nome": "Uranio (Milano Adapt)", "usa": True, "corr": 1.16},  
+        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 15.50, "quantita": 100, "nome": "Leonardo", "usa": False, "corr": 1.0},  
+        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 2.10, "quantita": 500, "nome": "Expert AI", "usa": False, "corr": 1.0},   
+        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 12.00, "quantita": 80, "nome": "Avio Spazio", "usa": False, "corr": 1.0}    
     }
 
     st.sidebar.title("📱 Menu")
@@ -90,46 +90,11 @@ if check_password():
                     c2.metric("Utile (€)", f"{item['ResaEuro']:.2f}", f"{item['ResaPerc']:.2f}%")
                     st.caption(f"Investito: € {item['Investito']:.2f} | Valore: € {item['ValoreTot']:.2f}")
 
-        elif scelta == "📊 Analisi Grafica":
-            st.title("📊 Analisi Portafoglio")
-            
-            # Verifichiamo che ci siano dati
-            if data:
-                # 1. Grafico Torta (Distribuzione Capitale)
-                st.subheader("Distribuzione Capitale")
-                fig_pie = px.pie(
-                    data, 
-                    values='ValoreTot', 
-                    names='Nome', 
-                    hole=0.4,
-                    color_discrete_sequence=px.colors.qualitative.Pastel
-                )
-                st.plotly_chart(fig_pie, use_container_width=True)
+        elif scelta == "📊 Grafici":
+            st.title("📊 Analisi")
+            st.plotly_chart(px.pie(data, values='ValoreTot', names='Nome', hole=0.4))
+            st.plotly_chart(px.bar(data, x='Nome', y='ResaEuro', color='ResaEuro', color_continuous_scale=['red', 'green']))
 
-                # 2. Grafico Barre (Utili/Perdite)
-                st.subheader("Confronto Utili Reali (€)")
-                # Creiamo il grafico usando la lista 'data' che contiene già i calcoli corretti
-                fig_bar = px.bar(
-                    data, 
-                    x='Nome', 
-                    y='ResaEuro', 
-                    color='ResaEuro',
-                    color_continuous_scale=['red', 'green'],
-                    text_auto='.2f',
-                    labels={'ResaEuro': 'Utile (€)', 'Nome': 'Titolo'}
-                )
-                
-                # Layout per rendere il grafico più leggibile su mobile
-                fig_bar.update_layout(xaxis_tickangle=-45, showlegend=False)
-                st.plotly_chart(fig_bar, use_container_width=True)
-
-                # 3. Riepilogo Numerico Rapido
-                st.divider()
-                tot_u = sum(item['ResaEuro'] for item in data)
-                st.metric("Utile Totale Complessivo", f"€ {tot_u:.2f}")
-            else:
-                st.error("Nessun dato disponibile per generare i grafici.")
-
-
-
-
+    if st.sidebar.button("Log out"):
+        st.session_state["password_correct"] = False
+        st.rerun()
