@@ -3,7 +3,7 @@ import yfinance as yf
 import time
 
 # --- CONFIGURAZIONE SICUREZZA ---
-PASSWORD_CORRETTA = "TuaPassword123" 
+PASSWORD_CORRETTA = "TuaPassword123" # Cambiala se necessario
 
 def check_password():
     if "password_correct" not in st.session_state:
@@ -21,17 +21,17 @@ def check_password():
     return False
 
 if check_password():
-    # --- INSERISCI QUI I TUOI DATI REALI ---
+    # --- DATI DI PORTAFOGLIO (Modifica i valori con i tuoi reali) ---
     STOCKS = {
-        "JE00B1VS3770": {"ticker": "ORO", "acquisto": 180.00, "quantita": 30}, # Oro
-        "IE0003BJ2JS4": {"ticker": "NUCLEARE", "acquisto": 48.00, "quantita": 50},  # Uranio
-        "IT0003856405": {"ticker": "LEONARDO", "acquisto": 50.50, "quantita": 100},  # Leonardo
-        "IT0004496029": {"ticker": "AI ITALIA", "acquisto": 2.10, "quantita": 3000},   # Expert.ai
-        "IT0005119810": {"ticker": "AVIO", "acquisto": 12.00, "quantita": 200}    # Avio
+        "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 180.00, "quantita": 10}, 
+        "IE0003BJ2JS4": {"ticker": "NCLR.MI", "acquisto": 48.00, "quantita": 50},  
+        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 15.50, "quantita": 100},  
+        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 2.10, "quantita": 500},   
+        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 12.00, "quantita": 80}    
     }
 
-    st.set_page_config(page_title="Gestione Portafoglio", layout="centered")
-    st.title("📊 Rendimento Portafoglio")
+    st.set_page_config(page_title="Riepilogo Azioni", layout="centered")
+    st.title("📋 Riepilogo Singole Azioni")
 
     @st.cache_data(ttl=600)
     def get_data():
@@ -39,20 +39,20 @@ if check_password():
         for isin, info in STOCKS.items():
             try:
                 stock = yf.Ticker(info["ticker"])
-                hist = stock.history(period="5d")
+                hist = stock.history(period="10d")
                 if not hist.empty:
                     last_price = float(hist['Close'].iloc[-1])
                     prezzo_acq = info["acquisto"]
                     qta = info["quantita"]
                     
-                    # Calcolo variazione giornaliera
+                    # Variazione Giornaliera (Rispetto a ieri)
                     if len(hist) >= 2:
                         prev_close = float(hist['Close'].iloc[-2])
                         var_giorno = ((last_price - prev_close) / prev_close) * 100
                     else:
                         var_giorno = 0.0
                     
-                    # Calcolo Rendimento Totale
+                    # Rendimento Totale (Rispetto all'acquisto)
                     valore_attuale = last_price * qta
                     investimento_iniziale = prezzo_acq * qta
                     resa_euro = valore_attuale - investimento_iniziale
@@ -62,7 +62,9 @@ if check_password():
                         "Ticker": info["ticker"], 
                         "Prezzo": last_price, 
                         "Qta": qta,
+                        "Acquisto": prezzo_acq,
                         "ValoreTot": valore_attuale,
+                        "Investito": investimento_iniziale,
                         "VarGiorno": var_giorno,
                         "ResaEuro": resa_euro,
                         "ResaPerc": resa_perc
@@ -75,38 +77,36 @@ if check_password():
     current_data = get_data()
     
     if current_data:
-        # Calcolo Totale Portafoglio
-        totale_portafoglio = sum(item['ValoreTot'] for item in current_data)
-        totale_guadagno = sum(item['ResaEuro'] for item in current_data)
-        
-        # Header con riassunto totale
-        st.subheader("Riepilogo Totale")
-        c1, c2 = st.columns(2)
-        c1.metric("Valore Portafoglio", f"€ {totale_portafoglio:,.2f}")
-        c2.metric("Guadagno/Perdita Tot.", f"€ {totale_guadagno:,.2f}", delta=f"{totale_guadagno:,.2f}€")
-        st.divider()
-
-        # Dettaglio per ogni azione
         for item in current_data:
-            with st.expander(f"**{item['Ticker']}** (Q.tà: {item['Qta']})", expanded=True):
-                col_a, col_b, col_c = st.columns(3)
+            # Crea un box visivo per ogni azione
+            with st.container(border=True):
+                st.subheader(f"🏷️ {item['Ticker']}")
                 
-                with col_a:
-                    st.metric("Prezzo", f"€{item['Prezzo']:.3f}", f"{item['VarGiorno']:.2f}%")
+                # Prima riga: Prezzo e Variazione di oggi
+                c1, c2 = st.columns(2)
+                c1.metric("Prezzo Attuale", f"€ {item['Prezzo']:.3f}")
+                c2.metric("Scostamento Oggi", f"{item['VarGiorno']:.2f}%", delta=f"{item['VarGiorno']:.2f}%")
                 
-                with col_b:
-                    st.metric("Resa in €", f"€{item['ResaEuro']:.2f}")
+                st.write("---")
                 
-                with col_c:
-                    st.metric("Resa %", f"{item['ResaPerc']:.2f}%")
+                # Seconda riga: Resa rispetto all'acquisto
+                c3, c4 = st.columns(2)
+                c3.metric("Resa in Euro", f"€ {item['ResaEuro']:.2f}", delta=f"€ {item['ResaEuro']:.2f}")
+                c4.metric("Resa Percentuale", f"{item['ResaPerc']:.2f}%", delta=f"{item['ResaPerc']:.2f}%")
                 
-                st.caption(f"Valore attuale posizione: € {item['ValoreTot']:,.2f}")
+                # Terza riga: Dettagli tecnici
+                st.info(f"""
+                **Dettagli Posizione:**
+                * Prezzo Acquisto: € {item['Acquisto']:.3f} | Quantità: {item['Qta']}
+                * Capitale Investito: € {item['Investito']:,.2f}
+                * Valore Attuale: **€ {item['ValoreTot']:,.2f}**
+                """)
         
-        if st.button("🔄 Aggiorna Prezzi"):
+        if st.button("🔄 Aggiorna Dati"):
             st.cache_data.clear()
             st.rerun()
     else:
-        st.error("Caricamento dati fallito.")
+        st.warning("⚠️ Caricamento dei dati in corso...")
 
     if st.button("Log out"):
         st.session_state["password_correct"] = False
