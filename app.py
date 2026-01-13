@@ -42,7 +42,6 @@ if login():
         except: ex = 0.92
         
         results = []
-        # Ora italiana
         ora_it = datetime.datetime.now() + timedelta(hours=1)
         ora_attuale = ora_it.strftime('%H:%M:%S')
         
@@ -52,29 +51,21 @@ if login():
                 h = stock.history(period="5d")
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
-                    
                     if info["usa"]:
-                        # Moltiplicatore tarato per riflettere i 51.15€
                         p_eur = (last_p * ex) * 1.15 
                     else:
                         p_eur = last_p
                     
                     inv = info["acq"] * info["q"]
                     val = p_eur * info["q"]
-                    gain = val - inv # CALCOLO UTILE REALE
-                    
+                    gain = val - inv
                     prec = h['Close'].iloc[-2]
                     var = ((last_p - prec) / prec) * 100
                     
                     results.append({
-                        "Nome": info["n"], 
-                        "Prezzo": p_eur, 
-                        "Inv": inv,
-                        "Val": val, 
-                        "Gain": gain, # Passiamo il valore corretto ai grafici
-                        "Var": var,
-                        "Perc": (gain / inv * 100),
-                        "Ora": ora_attuale
+                        "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
+                        "Val": val, "Gain": gain, "Var": var,
+                        "Perc": (gain / inv * 100), "Ora": ora_attuale
                     })
                 time.sleep(0.4)
             except: continue
@@ -86,7 +77,6 @@ if login():
         if scelta == "📋 Lista":
             st.title("📋 Portafoglio")
             tot_gain = sum(i['Gain'] for i in data)
-            
             fig = go.Figure(go.Indicator(
                 mode = "gauge+number", value = tot_gain,
                 title = {'text': "Utile Totale (€)"},
@@ -95,7 +85,6 @@ if login():
             ))
             fig.update_layout(height=300)
             st.plotly_chart(fig, use_container_width=True)
-            
             st.metric("UTILE ATTUALE", f"€ {tot_gain:.2f}")
             st.divider()
 
@@ -103,7 +92,6 @@ if login():
                 color = "#28a745" if i['Gain'] >= 0 else "#dc3545"
                 st.markdown(f"<h3 style='margin-bottom:0; color: {color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
                 st.caption(f"🕒 Aggiornato alle: {i['Ora']}") 
-                
                 with st.container(border=True):
                     c1, c2 = st.columns(2)
                     c1.metric("Prezzo", f"€ {i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
@@ -111,25 +99,38 @@ if login():
                     st.caption(f"Valore: € {i['Val']:.2f}")
 
         elif scelta == "📊 Grafici":
-            st.title("📊 Analisi Portafoglio")
+            st.title("📊 Analisi Avanzata")
             
-            # Grafico a Torta
-            st.subheader("Distribuzione Capitale")
-            fig_pie = px.pie(data, values='Val', names='Nome', hole=0.4)
-            st.plotly_chart(fig_pie, use_container_width=True)
-
-            # Grafico a Barre CORRETTO
-            st.subheader("Utile Effettivo per Titolo (€)")
-            fig_bar = px.bar(
+            # 1. MAPPA TREEMAP (Molto professionale)
+            st.subheader("Mappa del Portafoglio (Dimensione = Valore)")
+            fig_tree = px.treemap(
                 data, 
-                x='Nome', 
-                y='Gain', # Qui ora legge il valore Gain corretto
-                color='Gain', 
-                color_continuous_scale=['red', 'yellow', 'green'],
-                text_auto='.2f',
-                labels={'Gain': 'Utile (€)'}
+                path=['Nome'], 
+                values='Val',
+                color='Gain',
+                color_continuous_scale='RdYlGn',
+                hover_data=['Perc']
             )
-            fig_bar.update_layout(xaxis_tickangle=-45)
+            st.plotly_chart(fig_tree, use_container_width=True)
+
+            # 2. GRAFICO A BOLLE (Effetto dinamico)
+            st.subheader("Rendimento vs Dimensione Investimento")
+            fig_bubble = px.scatter(
+                data, 
+                x="Nome", 
+                y="Gain",
+                size="Val", 
+                color="Gain",
+                hover_name="Nome", 
+                size_max=60,
+                color_continuous_scale='RdYlGn'
+            )
+            st.plotly_chart(fig_bubble, use_container_width=True)
+
+            # 3. BARRE CLASSICHE
+            st.subheader("Utile per Titolo (€)")
+            fig_bar = px.bar(data, x='Nome', y='Gain', color='Gain', 
+                             color_continuous_scale='RdYlGn', text_auto='.2f')
             st.plotly_chart(fig_bar, use_container_width=True)
 
     if st.sidebar.button("Logout"):
