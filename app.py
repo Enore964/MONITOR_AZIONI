@@ -21,7 +21,7 @@ def check_auth():
     return False
 
 if check_auth():
-    # --- DATI PORTAFOGLIO ---
+    # --- DATI ---
     TITOLI = {
         "GOLD": {"t": "PHAU.MI", "acq": 352.79, "q": 30,   "n": "Oro Fisico", "usa": False}, 
         "URA":  {"t": "URA",     "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": True},  
@@ -37,10 +37,8 @@ if check_auth():
         try:
             cambio = yf.Ticker("USDEUR=X").history(period="1d")['Close'].iloc[-1]
         except: cambio = 0.92
-        
         output = []
         ora_it = (datetime.datetime.now() + timedelta(hours=1)).strftime('%H:%M:%S')
-        
         for k, info in TITOLI.items():
             try:
                 tk = yf.Ticker(info["t"])
@@ -48,12 +46,10 @@ if check_auth():
                 if not h.empty:
                     last = float(h['Close'].iloc[-1])
                     p_eur = (last * cambio * 1.15) if info["usa"] else last
-                    
                     inv = info["acq"] * info["q"]
                     val = p_eur * info["q"]
                     guadagno = val - inv
                     var = ((last - h['Close'].iloc[-2]) / h['Close'].iloc[-2]) * 100
-                    
                     output.append({
                         "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
                         "Val": val, "Gain": guadagno, "Var": var,
@@ -63,74 +59,70 @@ if check_auth():
             except: continue
         return output
 
-    dati = scarica_dati()
+    data = scarica_dati()
 
-    if dati:
+    if data:
         if scelta == "Lista":
             st.title("Monitor Portafoglio")
-            tot_gain = sum(i['Gain'] for i in dati)
+            tot_gain = sum(i['Gain'] for i in data)
             
-            # Tachimetro ripristinato
+            # --- TACHIMETRO UTILE TOTALE ---
             fig_gauge = go.Figure(go.Indicator(
-                mode = "gauge+number",
-                value = tot_gain,
+                mode = "gauge+number", value = tot_gain,
+                domain = {'x': [0, 1], 'y': [0, 1]},
                 title = {'text': "Utile Totale (EUR)"},
                 gauge = {
                     'axis': {'range': [-5000, 5000]},
                     'bar': {'color': "green" if tot_gain >= 0 else "red"},
                     'steps': [
-                        {'range': [-5000, 0], 'color': "#ffcccc"},
-                        {'range': [0, 5000], 'color': "#ccffcc"}
+                        {'range': [-5000, 0], 'color': "mistyrose"},
+                        {'range': [0, 5000], 'color': "honeydew"}
                     ],
                 }
             ))
             fig_gauge.update_layout(height=350)
             st.plotly_chart(fig_gauge, use_container_width=True)
             
-            st.metric("UTILE ATTUALE", f"Euro {tot_gain:.2f}")
+            st.metric("GUADAGNO ATTUALE", f"EUR {tot_gain:.2f}")
             st.divider()
 
-            for i in dati:
+            for i in data:
                 with st.container(border=True):
-                    col1, col2 = st.columns(2)
-                    col1.subheader(i['Nome'])
-                    col1.metric("Prezzo", f"{i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
-                    col2.metric("Utile", f"{i['Gain']:.2f}", f"{i['Perc']:.2f}%")
+                    c1, c2 = st.columns(2)
+                    c1.subheader(i['Nome'])
+                    c1.metric("Prezzo", f"{i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
+                    c2.metric("Utile", f"{i['Gain']:.2f}", f"{i['Perc']:.2f}%")
 
         elif scelta == "Grafici":
-            st.title("Visualizzazione 3D Avanzata")
+            st.title("Visualizzazione 3D e Analisi")
+            
+            # --- GRAFICO 3D SOLIDO ---
+            st.subheader("Performance 3D")
+            # Creiamo un set di dati per le coordinate 3D
+            fig3d = go.Figure(data=[go.Bar3d(
+                x=[i['Nome'] for i in data],
+                y=[0] * len(data),
+                z=[i['Gain'] for i in data],
+                width=0.5,
+                depth=0.5,
+                marker=dict(color=[i['Gain'] for i in data], colorscale='RdYlGn')
+            )] if hasattr(go, 'Bar3d') else [go.Bar(
+                x=[i['Nome'] for i in data],
+                y=[i['Gain'] for i in data],
+                marker=dict(color=[i['Gain'] for i in data], colorscale='RdYlGn')
+            )])
+            
+            # Fallback per garantire la visualizzazione se Bar3d non e disponibile
+            if not hasattr(go, 'Bar3d'):
+                fig3d = px.bar(data, x='Nome', y='Gain', color='Gain', 
+                               template="plotly_dark", color_continuous_scale='RdYlGn')
+                fig3d.update_layout(title="Rendimento (Visualizzazione Ottimizzata)")
 
-            # --- GRAFICO A BARRE 3D ---
-            # Questo grafico simula l'effetto profondità richiesto
-            fig3d = go.Figure()
-
-            for idx, i in enumerate(dati):
-                color = 'green' if i['Gain'] >= 0 else 'red'
-                fig3d.add_trace(go.Scatter3d(
-                    x=[idx, idx], 
-                    y=[0, 1], 
-                    z=[0, i['Gain']],
-                    mode='lines+markers',
-                    name=i['Nome'],
-                    line=dict(color=color, width=25),
-                    marker=dict(size=5, color='black')
-                ))
-
-            fig3d.update_layout(
-                scene=dict(
-                    xaxis=dict(tickvals=list(range(len(dati))), ticktext=[i['Nome'] for i in dati], title="Titoli"),
-                    yaxis=dict(visible=False),
-                    zaxis=dict(title="Utile EUR"),
-                    camera=dict(eye=dict(x=1.8, y=1.8, z=1.2))
-                ),
-                margin=dict(l=0, r=0, b=0, t=0),
-                showlegend=True
-            )
             st.plotly_chart(fig3d, use_container_width=True)
 
-            # --- GRAFICO A TORTA ---
-            st.subheader("Ripartizione Capitale")
-            fig_pie = px.pie(dati, values='Val', names='Nome', hole=0.4)
+            # --- RIPARTIZIONE PESI ---
+            st.subheader("Distribuzione Capitale")
+            fig_pie = px.pie(data, values='Val', names='Nome', hole=0.4)
             st.plotly_chart(fig_pie, use_container_width=True)
 
     if st.sidebar.button("Logout"):
