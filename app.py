@@ -24,7 +24,6 @@ def login():
 
 if login():
     # --- DATI PORTAFOGLIO ---
-    # Nota: Moltiplicatore Uranio impostato a 1.15 per allineamento Milano (51.15€)
     LISTA_TITOLI = {
         "GOLD": {"t": "PHAU.MI", "acq": 352.79, "q": 30,   "n": "Oro Fisico", "usa": False}, 
         "URA":  {"t": "URA",     "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": True},  
@@ -43,7 +42,6 @@ if login():
         except: ex = 0.92
         
         results = []
-        # Calcolo ora italiana (UTC + 1)
         ora_it = datetime.datetime.now() + timedelta(hours=1)
         ora_attuale = ora_it.strftime('%H:%M:%S')
         
@@ -53,7 +51,6 @@ if login():
                 h = stock.history(period="5d")
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
-                    
                     if info["usa"]:
                         p_eur = (last_p * ex) * 1.15 
                     else:
@@ -62,19 +59,13 @@ if login():
                     inv = info["acq"] * info["q"]
                     val = p_eur * info["q"]
                     gain = val - inv
-                    
                     prec = h['Close'].iloc[-2]
                     var = ((last_p - prec) / prec) * 100
                     
                     results.append({
-                        "Nome": info["n"], 
-                        "Prezzo": p_eur, 
-                        "Inv": inv,
-                        "Val": val, 
-                        "Gain": gain, 
-                        "Var": var,
-                        "Perc": (gain / inv * 100),
-                        "Ora": ora_attuale
+                        "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
+                        "Val": val, "Gain": gain, "Var": var,
+                        "Perc": (gain / inv * 100), "Ora": ora_attuale
                     })
                 time.sleep(0.4)
             except: continue
@@ -87,6 +78,60 @@ if login():
             st.title("📋 Portafoglio")
             tot_gain = sum(i['Gain'] for i in data)
             
+            # Gauge grafico dell'utile totale
             fig = go.Figure(go.Indicator(
                 mode = "gauge+number", value = tot_gain,
-                title = {'text': "Utile Totale (€
+                title = {'text': "Utile Totale (Euro)"},
+                gauge = {'axis': {'range': [-5000, 5000]},
+                         'bar': {'color': "green" if tot_gain >= 0 else "red"}}
+            ))
+            fig.update_layout(height=300)
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.metric("UTILE ATTUALE", f"€ {tot_gain:.2f}")
+            st.divider()
+
+            for i in data:
+                color = "#28a745" if i['Gain'] >= 0 else "#dc3545"
+                st.markdown(f"<h3 style='margin-bottom:0; color: {color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
+                st.caption(f"🕒 Aggiornato alle: {i['Ora']}") 
+                with st.container(border=True):
+                    c1, c2 = st.columns(2)
+                    c1.metric("Prezzo", f"€ {i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
+                    c2.metric("Utile", f"€ {i['Gain']:.2f}", f"{i['Perc']:.2f}%")
+                    st.caption(f"Valore: € {i['Val']:.2f} | Investito: € {i['Inv']:.2f}")
+
+        elif scelta == "📊 Grafici":
+            st.title("📊 Analisi Avanzata")
+            
+            # 1. Grafico Sunburst (Esplosione a cerchi)
+            st.subheader("Rendimento e Pesi Portafoglio")
+            fig_sun = px.sunburst(
+                data, path=['Nome'], values='Val', color='Gain',
+                color_continuous_scale='RdYlGn', hover_data=['Perc']
+            )
+            st.plotly_chart(fig_sun, use_container_width=True)
+
+            # 2. Grafico Radar (A ragnatela)
+            st.subheader("Confronto Performance")
+            fig_radar = go.Figure()
+            for i in data:
+                fig_radar.add_trace(go.Scatterpolar(
+                    r=[i['Prezzo'], i['Gain'], abs(i['Var']) * 20],
+                    theta=['Prezzo (€)', 'Utile (€)', 'Volatilità'],
+                    fill='toself', name=i['Nome']
+                ))
+            fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True)
+            st.plotly_chart(fig_radar, use_container_width=True)
+
+            # 3. Istogramma Classico Corretto
+            st.subheader("Utile per Titolo (Euro)")
+            fig_bar = px.bar(
+                data, x='Nome', y='Gain', color='Gain',
+                color_continuous_scale='RdYlGn', text_auto='.2f'
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+    if st.sidebar.button("Logout"):
+        st.session_state["p_ok"] = False
+        st.rerun()
