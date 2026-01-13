@@ -22,7 +22,6 @@ def check_auth():
 
 if check_auth():
     # --- CONFIGURAZIONE ---
-    # Moltiplicatore 1.15 per allineare Uranio a Milano
     TITOLI = {
         "GOLD": {"t": "PHAU.MI", "acq": 352.79, "q": 30,   "n": "Oro Fisico", "usa": False}, 
         "URA":  {"t": "URA",     "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": True},  
@@ -40,7 +39,6 @@ if check_auth():
         except: cambio = 0.92
         
         output = []
-        # Ora Italiana
         ora_it = (datetime.datetime.now() + timedelta(hours=1)).strftime('%H:%M:%S')
         
         for k, info in TITOLI.items():
@@ -50,7 +48,6 @@ if check_auth():
                 if not h.empty:
                     last = float(h['Close'].iloc[-1])
                     p_eur = (last * cambio * 1.15) if info["usa"] else last
-                    
                     inv = info["acq"] * info["q"]
                     val = p_eur * info["q"]
                     guadagno = val - inv
@@ -61,7 +58,7 @@ if check_auth():
                         "Val": val, "Gain": guadagno, "Var": var,
                         "Perc": (guadagno / inv * 100), "Ora": ora_it
                     })
-                time.sleep(0.2)
+                time.sleep(0.1)
             except: continue
         return output
 
@@ -72,22 +69,21 @@ if check_auth():
             st.title("Monitor Portafoglio")
             tot_gain = sum(i['Gain'] for i in dati)
             
-            # --- REINSERIMENTO TACHIMETRO (GAUGE) ---
+            # Tachimetro ripristinato
             fig_gauge = go.Figure(go.Indicator(
                 mode = "gauge+number",
                 value = tot_gain,
-                domain = {'x': [0, 1], 'y': [0, 1]},
                 title = {'text': "Utile Totale (EUR)"},
                 gauge = {
                     'axis': {'range': [-5000, 5000]},
                     'bar': {'color': "green" if tot_gain >= 0 else "red"},
                     'steps': [
-                        {'range': [-5000, 0], 'color': "mistyrose"},
-                        {'range': [0, 5000], 'color': "honeydew"}
+                        {'range': [-5000, 0], 'color': "#ffcccc"},
+                        {'range': [0, 5000], 'color': "#ccffcc"}
                     ],
                 }
             ))
-            fig_gauge.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20))
+            fig_gauge.update_layout(height=350)
             st.plotly_chart(fig_gauge, use_container_width=True)
             
             st.metric("UTILE ATTUALE", f"Euro {tot_gain:.2f}")
@@ -97,41 +93,31 @@ if check_auth():
                 with st.container(border=True):
                     col1, col2 = st.columns(2)
                     col1.subheader(i['Nome'])
-                    st.caption(f"Aggiornato: {i['Ora']}")
+                    st.caption(f"🕒 Aggiornato: {i['Ora']}")
                     col1.metric("Prezzo", f"{i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
                     col2.metric("Utile", f"{i['Gain']:.2f}", f"{i['Perc']:.2f}%")
 
         elif scelta == "Grafici":
-            st.title("Visualizzazione Avanzata")
+            st.title("📊 Analisi Grafica")
 
-            # --- GRAFICO 3D ---
-            st.subheader("Rendimento 3D")
+            # --- NUOVO GRAFICO 3D A COLONNE SEPARATE ---
+            st.subheader("Performance 3D (Ruota con il mouse)")
             fig3d = go.Figure()
-            for x_idx, i in enumerate(dati):
-                fig3d.add_trace(go.Mesh3d(
-                    x=[x_idx, x_idx, x_idx+0.6, x_idx+0.6, x_idx, x_idx, x_idx+0.6, x_idx+0.6],
-                    y=[0, 1, 1, 0, 0, 1, 1, 0],
-                    z=[0, 0, 0, 0, i['Gain'], i['Gain'], i['Gain'], i['Gain']],
-                    color='green' if i['Gain'] >= 0 else 'red',
-                    opacity=0.8,
-                    name=i['Nome']
+
+            for i in dati:
+                # Usiamo cilindri per un effetto più solido e professionale
+                fig3d.add_trace(go.Scatter3d(
+                    x=[i['Nome'], i['Nome']],
+                    y=[0, 0],
+                    z=[0, i['Gain']],
+                    mode='lines+markers',
+                    name=i['Nome'],
+                    line=dict(color='green' if i['Gain'] >= 0 else 'red', width=20),
+                    marker=dict(size=10, color='black')
                 ))
 
             fig3d.update_layout(
                 scene=dict(
-                    xaxis=dict(tickvals=list(range(len(dati))), ticktext=[i['Nome'] for i in dati], title="Titoli"),
-                    yaxis=dict(visible=False),
-                    zaxis=dict(title="Utile (EUR)")
-                ),
-                margin=dict(l=0, r=0, b=0, t=0)
-            )
-            st.plotly_chart(fig3d, use_container_width=True)
-
-            # --- ISTOGRAMMA PROFESSIONALE ---
-            st.subheader("Rendimento Euro")
-            fig_bar = px.bar(dati, x='Nome', y='Gain', color='Gain', color_continuous_scale='RdYlGn', text_auto='.2f')
-            st.plotly_chart(fig_bar, use_container_width=True)
-
-    if st.sidebar.button("Logout"):
-        st.session_state["p_ok"] = False
-        st.rerun()
+                    xaxis_title='Titolo',
+                    yaxis_title='',
+                    zaxis_title='Ut
