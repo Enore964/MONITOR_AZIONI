@@ -3,6 +3,7 @@ import yfinance as yf
 import plotly.graph_objects as go
 import plotly.express as px
 import time
+from datetime import datetime # Nuova importazione per l'orario
 
 # --- ACCESSO ---
 CHIAVE_SITO = "1"
@@ -22,7 +23,6 @@ def login():
 
 if login():
     # --- DATI PORTAFOGLIO ---
-    # Usiamo 1.15 come moltiplicatore per centrare quota 51.15€
     LISTA_TITOLI = {
         "GOLD": {"t": "PHAU.MI", "acq": 352.79, "q": 30,   "n": "Oro Fisico", "usa": False}, 
         "URA":  {"t": "URA",     "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": True},  
@@ -48,9 +48,10 @@ if login():
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
                     
-                    # --- CALCOLO PREZZO ---
+                    # Orario dell'ultimo dato disponibile
+                    ora_dato = h.index[-1].strftime('%H:%M (%d/%m)')
+                    
                     if info["usa"]:
-                        # Alzato a 1.15 per correggere il tuo valore
                         p_eur = (last_p * ex) * 1.15 
                     else:
                         p_eur = last_p
@@ -64,7 +65,8 @@ if login():
                     results.append({
                         "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
                         "Val": val, "Gain": gain, "Var": var,
-                        "Perc": (gain / inv * 100)
+                        "Perc": (gain / inv * 100),
+                        "Ora": ora_dato # Salviamo l'ora
                     })
                 time.sleep(0.4)
             except: continue
@@ -84,6 +86,7 @@ if login():
                 gauge = {'axis': {'range': [-5000, 5000]},
                          'bar': {'color': "green" if tot_gain >= 0 else "red"}}
             ))
+            fig.update_layout(height=300)
             st.plotly_chart(fig, use_container_width=True)
             
             st.metric("UTILE ATTUALE", f"€ {tot_gain:.2f}")
@@ -91,7 +94,9 @@ if login():
 
             for i in data:
                 color = "#28a745" if i['Gain'] >= 0 else "#dc3545"
-                st.markdown(f"<h3 style='color: {color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
+                st.markdown(f"<h3 style='margin-bottom:0; color: {color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
+                st.caption(f"🕒 Ultimo dato: {i['Ora']}") # Mostra l'ora sotto il titolo
+                
                 with st.container(border=True):
                     c1, c2 = st.columns(2)
                     c1.metric("Prezzo", f"€ {i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
