@@ -42,9 +42,9 @@ if login():
         except: ex = 0.92
         
         results = []
-        # Calcolo ora italiana (UTC + 1)
-        ora_italiana = datetime.datetime.now() + timedelta(hours=1)
-        ora_attuale = ora_italiana.strftime('%H:%M:%S')
+        # Ora italiana
+        ora_it = datetime.datetime.now() + timedelta(hours=1)
+        ora_attuale = ora_it.strftime('%H:%M:%S')
         
         for k, info in LISTA_TITOLI.items():
             try:
@@ -52,20 +52,27 @@ if login():
                 h = stock.history(period="5d")
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
+                    
                     if info["usa"]:
+                        # Moltiplicatore tarato per riflettere i 51.15€
                         p_eur = (last_p * ex) * 1.15 
                     else:
                         p_eur = last_p
                     
                     inv = info["acq"] * info["q"]
                     val = p_eur * info["q"]
-                    gain = val - inv
+                    gain = val - inv # CALCOLO UTILE REALE
+                    
                     prec = h['Close'].iloc[-2]
                     var = ((last_p - prec) / prec) * 100
                     
                     results.append({
-                        "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
-                        "Val": val, "Gain": gain, "Var": var,
+                        "Nome": info["n"], 
+                        "Prezzo": p_eur, 
+                        "Inv": inv,
+                        "Val": val, 
+                        "Gain": gain, # Passiamo il valore corretto ai grafici
+                        "Var": var,
                         "Perc": (gain / inv * 100),
                         "Ora": ora_attuale
                     })
@@ -104,9 +111,26 @@ if login():
                     st.caption(f"Valore: € {i['Val']:.2f}")
 
         elif scelta == "📊 Grafici":
-            st.title("📊 Analisi")
-            st.plotly_chart(px.pie(data, values='Val', names='Nome', hole=0.4), use_container_width=True)
-            st.plotly_chart(px.bar(data, x='Nome', y='Gain', color='Gain', color_continuous_scale=['red', 'green']), use_container_width=True)
+            st.title("📊 Analisi Portafoglio")
+            
+            # Grafico a Torta
+            st.subheader("Distribuzione Capitale")
+            fig_pie = px.pie(data, values='Val', names='Nome', hole=0.4)
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+            # Grafico a Barre CORRETTO
+            st.subheader("Utile Effettivo per Titolo (€)")
+            fig_bar = px.bar(
+                data, 
+                x='Nome', 
+                y='Gain', # Qui ora legge il valore Gain corretto
+                color='Gain', 
+                color_continuous_scale=['red', 'yellow', 'green'],
+                text_auto='.2f',
+                labels={'Gain': 'Utile (€)'}
+            )
+            fig_bar.update_layout(xaxis_tickangle=-45)
+            st.plotly_chart(fig_bar, use_container_width=True)
 
     if st.sidebar.button("Logout"):
         st.session_state["p_ok"] = False
