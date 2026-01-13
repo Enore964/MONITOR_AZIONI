@@ -48,6 +48,7 @@ if login():
                 h = stock.history(period="5d")
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
+                    # Calcolo ora esatta per ogni titolo
                     ora_it = datetime.datetime.now() + timedelta(hours=1)
                     ora_azione = ora_it.strftime('%H:%M:%S')
                     
@@ -75,11 +76,12 @@ if login():
 
     if data:
         if scelta == "📋 Lista":
-            # Modifica richiesta: Titolo "Portafoglio Enore" con "Portafoglio" in italic
-            st.markdown("# *Portafoglio* Enore")
+            # Titolo interamente in italic come richiesto
+            st.markdown("# *Portafoglio Enore*")
             
             tot_gain = sum(i['Gain'] for i in data)
             
+            # Gauge grafico dell'utile totale
             fig = go.Figure(go.Indicator(
                 mode = "gauge+number", value = tot_gain,
                 title = {'text': "Utile Totale (Euro)"},
@@ -95,6 +97,7 @@ if login():
             for i in data:
                 color = "#28a745" if i['Gain'] >= 0 else "#dc3545"
                 st.markdown(f"<h3 style='margin-bottom:0; color: {color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
+                # Orario specifico per azione
                 st.markdown(f"🕒 *Aggiornato alle: {i['Ora']}*") 
                 
                 with st.container(border=True):
@@ -105,8 +108,7 @@ if login():
 
         elif scelta == "📊 Grafici":
             st.title("📊 Analisi Avanzata")
-            # Anche qui aggiungiamo il riferimento personalizzato
-            st.markdown("### Analisi di *Portafoglio* Enore")
+            st.markdown("### Analisi di *Portafoglio Enore*")
             
             st.subheader("Rendimento e Pesi Portafoglio")
             fig_sun = px.sunburst(
@@ -125,3 +127,4 @@ if login():
     if st.sidebar.button("Logout"):
         st.session_state["p_ok"] = False
         st.rerun()
+
