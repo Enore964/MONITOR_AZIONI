@@ -3,7 +3,8 @@ import yfinance as yf
 import plotly.graph_objects as go
 import plotly.express as px
 import time
-from datetime import datetime
+import datetime
+from datetime import timedelta
 
 # --- ACCESSO ---
 CHIAVE_SITO = "1"
@@ -34,7 +35,6 @@ if login():
     st.sidebar.title("📱 Menu")
     scelta = st.sidebar.radio("Vai a:", ["📋 Lista", "📊 Grafici"])
 
-    # Ridotto a 60 secondi così l'orario è sempre fresco quando aggiorni
     @st.cache_data(ttl=60) 
     def fetch_data():
         try:
@@ -42,8 +42,9 @@ if login():
         except: ex = 0.92
         
         results = []
-        # Prendiamo l'ora attuale del sistema
-        ora_attuale = datetime.now().strftime('%H:%M:%S')
+        # Calcolo ora italiana (UTC + 1)
+        ora_italiana = datetime.datetime.now() + timedelta(hours=1)
+        ora_attuale = ora_italiana.strftime('%H:%M:%S')
         
         for k, info in LISTA_TITOLI.items():
             try:
@@ -51,7 +52,6 @@ if login():
                 h = stock.history(period="5d")
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
-                    
                     if info["usa"]:
                         p_eur = (last_p * ex) * 1.15 
                     else:
@@ -67,7 +67,7 @@ if login():
                         "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
                         "Val": val, "Gain": gain, "Var": var,
                         "Perc": (gain / inv * 100),
-                        "Ora": ora_attuale # Usiamo l'ora di scaricamento reale
+                        "Ora": ora_attuale
                     })
                 time.sleep(0.4)
             except: continue
