@@ -6,13 +6,13 @@ import time
 import datetime
 from datetime import timedelta
 
-# --- LOGIN ---
+# --- LOGIN SICURO ---
 def check_auth():
     if "p_ok" not in st.session_state:
         st.session_state["p_ok"] = False
     if st.session_state["p_ok"]: return True
     st.title("Area Riservata")
-    cod = st.text_input("Codice:", type="password")
+    cod = st.text_input("Codice Accesso:", type="password")
     if st.button("Entra"):
         if cod == "1":
             st.session_state["p_ok"] = True
@@ -21,7 +21,7 @@ def check_auth():
     return False
 
 if check_auth():
-    # --- CONFIGURAZIONE ---
+    # --- DATI PORTAFOGLIO ---
     TITOLI = {
         "GOLD": {"t": "PHAU.MI", "acq": 352.79, "q": 30,   "n": "Oro Fisico", "usa": False}, 
         "URA":  {"t": "URA",     "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": True},  
@@ -30,7 +30,7 @@ if check_auth():
         "AVI":  {"t": "AVIO.MI", "acq": 36.6,   "q": 250,  "n": "Avio Spazio", "usa": False}    
     }
 
-    scelta = st.sidebar.radio("Menu", ["Lista", "Grafici"])
+    scelta = st.sidebar.radio("Scegli Vista:", ["Lista Titoli", "Analisi Grafica"])
 
     @st.cache_data(ttl=60) 
     def scarica_dati():
@@ -39,6 +39,7 @@ if check_auth():
         except: cambio = 0.92
         
         output = []
+        # Ora Italiana corretta (UTC+1)
         ora_it = (datetime.datetime.now() + timedelta(hours=1)).strftime('%H:%M:%S')
         
         for k, info in TITOLI.items():
@@ -65,11 +66,11 @@ if check_auth():
     dati = scarica_dati()
 
     if dati:
-        if scelta == "Lista":
-            st.title("Monitor Portafoglio")
+        if scelta == "Lista Titoli":
+            st.title("Stato Portafoglio")
             tot_gain = sum(i['Gain'] for i in dati)
             
-            # Tachimetro ripristinato
+            # TACHIMETRO (GAUGE) RIPRISTINATO
             fig_gauge = go.Figure(go.Indicator(
                 mode = "gauge+number",
                 value = tot_gain,
@@ -78,46 +79,28 @@ if check_auth():
                     'axis': {'range': [-5000, 5000]},
                     'bar': {'color': "green" if tot_gain >= 0 else "red"},
                     'steps': [
-                        {'range': [-5000, 0], 'color': "#ffcccc"},
-                        {'range': [0, 5000], 'color': "#ccffcc"}
+                        {'range': [-5000, 0], 'color': "#ffe6e6"},
+                        {'range': [0, 5000], 'color': "#e6ffec"}
                     ],
                 }
             ))
             fig_gauge.update_layout(height=350)
             st.plotly_chart(fig_gauge, use_container_width=True)
             
-            st.metric("UTILE ATTUALE", f"Euro {tot_gain:.2f}")
+            st.metric("GUADAGNO TOTALE", f"EUR {tot_gain:.2f}")
             st.divider()
 
             for i in dati:
                 with st.container(border=True):
-                    col1, col2 = st.columns(2)
-                    col1.subheader(i['Nome'])
-                    st.caption(f"🕒 Aggiornato: {i['Ora']}")
-                    col1.metric("Prezzo", f"{i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
-                    col2.metric("Utile", f"{i['Gain']:.2f}", f"{i['Perc']:.2f}%")
+                    c1, c2 = st.columns(2)
+                    c1.subheader(i['Nome'])
+                    st.caption(f"Aggiornato ore: {i['Ora']}")
+                    c1.metric("Prezzo", f"{i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
+                    c2.metric("Utile", f"{i['Gain']:.2f}", f"{i['Perc']:.2f}%")
 
-        elif scelta == "Grafici":
-            st.title("📊 Analisi Grafica")
+        elif scelta == "Analisi Grafica":
+            st.title("Visualizzazioni 3D")
 
-            # --- NUOVO GRAFICO 3D A COLONNE SEPARATE ---
-            st.subheader("Performance 3D (Ruota con il mouse)")
+            # --- VERO GRAFICO A BARRE 3D ---
+            st.subheader("Rendimento 3D Solido")
             fig3d = go.Figure()
-
-            for i in dati:
-                # Usiamo cilindri per un effetto più solido e professionale
-                fig3d.add_trace(go.Scatter3d(
-                    x=[i['Nome'], i['Nome']],
-                    y=[0, 0],
-                    z=[0, i['Gain']],
-                    mode='lines+markers',
-                    name=i['Nome'],
-                    line=dict(color='green' if i['Gain'] >= 0 else 'red', width=20),
-                    marker=dict(size=10, color='black')
-                ))
-
-            fig3d.update_layout(
-                scene=dict(
-                    xaxis_title='Titolo',
-                    yaxis_title='',
-                    zaxis_title='Ut
