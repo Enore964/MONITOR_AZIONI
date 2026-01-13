@@ -6,25 +6,24 @@ import time
 import datetime
 from datetime import timedelta
 
-# --- ACCESSO ---
-CHIAVE_SITO = "1"
-
-def login():
+# --- LOGIN ---
+def check_auth():
     if "p_ok" not in st.session_state:
         st.session_state["p_ok"] = False
     if st.session_state["p_ok"]: return True
-    st.title("🔒 Area Riservata")
+    st.title("Area Riservata")
     cod = st.text_input("Codice:", type="password")
     if st.button("Entra"):
-        if cod == CHIAVE_SITO:
+        if cod == "1":
             st.session_state["p_ok"] = True
             st.rerun()
-        else: st.error("❌ Errato")
+        else: st.error("Codice Errato")
     return False
 
-if login():
-    # --- DATI PORTAFOGLIO ---
-    LISTA_TITOLI = {
+if check_auth():
+    # --- CONFIGURAZIONE ---
+    # Moltiplicatore 1.15 per allineare Uranio a Milano
+    TITOLI = {
         "GOLD": {"t": "PHAU.MI", "acq": 352.79, "q": 30,   "n": "Oro Fisico", "usa": False}, 
         "URA":  {"t": "URA",     "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": True},  
         "LDO":  {"t": "LDO.MI",  "acq": 59.855, "q": 200,  "n": "Leonardo", "usa": False},  
@@ -32,94 +31,89 @@ if login():
         "AVI":  {"t": "AVIO.MI", "acq": 36.6,   "q": 250,  "n": "Avio Spazio", "usa": False}    
     }
 
-    st.sidebar.title("📱 Menu")
-    scelta = st.sidebar.radio("Vai a:", ["📋 Lista", "📊 Grafici"])
+    scelta = st.sidebar.radio("Menu", ["Lista", "Grafici"])
 
     @st.cache_data(ttl=60) 
-    def fetch_data():
+    def scarica_dati():
         try:
-            ex = yf.Ticker("USDEUR=X").history(period="1d")['Close'].iloc[-1]
-        except: ex = 0.92
+            cambio = yf.Ticker("USDEUR=X").history(period="1d")['Close'].iloc[-1]
+        except: cambio = 0.92
         
-        results = []
-        ora_it = datetime.datetime.now() + timedelta(hours=1)
-        ora_attuale = ora_it.strftime('%H:%M:%S')
+        output = []
+        # Ora Italiana
+        ora_it = (datetime.datetime.now() + timedelta(hours=1)).strftime('%H:%M:%S')
         
-        for k, info in LISTA_TITOLI.items():
+        for k, info in TITOLI.items():
             try:
-                stock = yf.Ticker(info["t"])
-                h = stock.history(period="5d")
+                tk = yf.Ticker(info["t"])
+                h = tk.history(period="5d")
                 if not h.empty:
-                    last_p = float(h['Close'].iloc[-1])
-                    if info["usa"]:
-                        p_eur = (last_p * ex) * 1.15 
-                    else:
-                        p_eur = last_p
+                    last = float(h['Close'].iloc[-1])
+                    p_eur = (last * cambio * 1.15) if info["usa"] else last
                     
                     inv = info["acq"] * info["q"]
                     val = p_eur * info["q"]
-                    gain = val - inv
-                    prec = h['Close'].iloc[-2]
-                    var = ((last_p - prec) / prec) * 100
+                    guadagno = val - inv
+                    var = ((last - h['Close'].iloc[-2]) / h['Close'].iloc[-2]) * 100
                     
-                    results.append({
+                    output.append({
                         "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
-                        "Val": val, "Gain": gain, "Var": var,
-                        "Perc": (gain / inv * 100), "Ora": ora_attuale
+                        "Val": val, "Gain": guadagno, "Var": var,
+                        "Perc": (guadagno / inv * 100), "Ora": ora_it
                     })
-                time.sleep(0.4)
+                time.sleep(0.2)
             except: continue
-        return results
+        return output
 
-    data = fetch_data()
+    dati = scarica_dati()
 
-    if data:
-        if scelta == "📋 Lista":
-            st.title("📋 Portafoglio")
-            tot_gain = sum(i['Gain'] for i in data)
-            
-            fig = go.Figure(go.Indicator(
-                mode = "gauge+number", value = tot_gain,
-                title = {'text': "Utile Totale (EUR)"},
-                gauge = {'axis': {'range': [-5000, 5000]},
-                         'bar': {'color': "green" if tot_gain >= 0 else "red"}}
-            ))
-            fig.update_layout(height=300)
-            st.plotly_chart(fig, use_container_width=True)
-            st.metric("UTILE ATTUALE", f"€ {tot_gain:.2f}")
+    if dati:
+        if scelta == "Lista":
+            st.title("Monitor Portafoglio")
+            tot_gain = sum(i['Gain'] for i in dati)
+            st.metric("UTILE TOTALE", f"Euro {tot_gain:.2f}")
             st.divider()
 
-            for i in data:
-                color = "#28a745" if i['Gain'] >= 0 else "#dc3545"
-                st.markdown(f"<h3 style='margin-bottom:0; color: {color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
-                st.caption(f"🕒 Aggiornato alle: {i['Ora']}") 
+            for i in dati:
                 with st.container(border=True):
-                    c1, c2 = st.columns(2)
-                    c1.metric("Prezzo", f"€ {i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
-                    c2.metric("Utile", f"€ {i['Gain']:.2f}", f"{i['Perc']:.2f}%")
+                    col1, col2 = st.columns(2)
+                    col1.subheader(i['Nome'])
+                    st.caption(f"Aggiornato: {i['Ora']}")
+                    col1.metric("Prezzo", f"{i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
+                    col2.metric("Utile", f"{i['Gain']:.2f}", f"{i['Perc']:.2f}%")
 
-        elif scelta == "📊 Grafici":
-            st.title("📊 Analisi 3D e Avanzata")
+        elif scelta == "Grafici":
+            st.title("Visualizzazione 3D")
 
-            # --- 1. GRAFICO 3D (Simile a quello richiesto) ---
-            st.subheader("Vista 3D: Valore vs Utile")
-            # Creiamo un grafico a dispersione 3D che simula le colonne
-            fig_3d = go.Figure(data=[go.Scatter3d(
-                x=[i['Nome'] for i in data],
-                y=[i['Val'] for i in data],
-                z=[i['Gain'] for i in data],
-                mode='markers+text',
-                text=[i['Nome'] for i in data],
-                marker=dict(
-                    size=20,
-                    color=[i['Gain'] for i in data],
-                    colorscale='RdYlGn',
+            # --- GRAFICO 3D RICHIESTO ---
+            # Utilizziamo Mesh3d per simulare delle colonne solide
+            fig3d = go.Figure()
+            for x_idx, i in enumerate(dati):
+                # Creiamo un "box" 3D per ogni titolo
+                fig3d.add_trace(go.Mesh3d(
+                    x=[x_idx, x_idx, x_idx+0.5, x_idx+0.5, x_idx, x_idx, x_idx+0.5, x_idx+0.5],
+                    y=[0, 1, 1, 0, 0, 1, 1, 0],
+                    z=[0, 0, 0, 0, i['Gain'], i['Gain'], i['Gain'], i['Gain']],
+                    color='green' if i['Gain'] >= 0 else 'red',
                     opacity=0.8,
-                    symbol='cylinder' # Forma a cilindro per simulare le colonne
-                )
-            )])
-            
-            fig_3d.update_layout(
-                scene = dict(
-                    xaxis_title='Titolo',
-                    yaxis_title='Capitale Investito',
+                    name=i['Nome']
+                ))
+
+            fig3d.update_layout(
+                scene=dict(
+                    xaxis=dict(tickvals=list(range(len(dati))), ticktext=[i['Nome'] for i in dati], title="Titoli"),
+                    yaxis=dict(visible=False),
+                    zaxis=dict(title="Utile (Euro)")
+                ),
+                margin=dict(l=0, r=0, b=0, t=0)
+            )
+            st.plotly_chart(fig3d, use_container_width=True)
+
+            # --- ISTOGRAMMA CLASSICO ---
+            st.subheader("Rendimento Euro")
+            fig_bar = px.bar(dati, x='Nome', y='Gain', color='Gain', color_continuous_scale='RdYlGn')
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+    if st.sidebar.button("Logout"):
+        st.session_state["p_ok"] = False
+        st.rerun()
