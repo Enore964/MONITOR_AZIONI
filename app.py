@@ -71,7 +71,26 @@ if check_auth():
         if scelta == "Lista":
             st.title("Monitor Portafoglio")
             tot_gain = sum(i['Gain'] for i in dati)
-            st.metric("UTILE TOTALE", f"Euro {tot_gain:.2f}")
+            
+            # --- REINSERIMENTO TACHIMETRO (GAUGE) ---
+            fig_gauge = go.Figure(go.Indicator(
+                mode = "gauge+number",
+                value = tot_gain,
+                domain = {'x': [0, 1], 'y': [0, 1]},
+                title = {'text': "Utile Totale (EUR)"},
+                gauge = {
+                    'axis': {'range': [-5000, 5000]},
+                    'bar': {'color': "green" if tot_gain >= 0 else "red"},
+                    'steps': [
+                        {'range': [-5000, 0], 'color': "mistyrose"},
+                        {'range': [0, 5000], 'color': "honeydew"}
+                    ],
+                }
+            ))
+            fig_gauge.update_layout(height=350, margin=dict(l=20, r=20, t=50, b=20))
+            st.plotly_chart(fig_gauge, use_container_width=True)
+            
+            st.metric("UTILE ATTUALE", f"Euro {tot_gain:.2f}")
             st.divider()
 
             for i in dati:
@@ -83,15 +102,14 @@ if check_auth():
                     col2.metric("Utile", f"{i['Gain']:.2f}", f"{i['Perc']:.2f}%")
 
         elif scelta == "Grafici":
-            st.title("Visualizzazione 3D")
+            st.title("Visualizzazione Avanzata")
 
-            # --- GRAFICO 3D RICHIESTO ---
-            # Utilizziamo Mesh3d per simulare delle colonne solide
+            # --- GRAFICO 3D ---
+            st.subheader("Rendimento 3D")
             fig3d = go.Figure()
             for x_idx, i in enumerate(dati):
-                # Creiamo un "box" 3D per ogni titolo
                 fig3d.add_trace(go.Mesh3d(
-                    x=[x_idx, x_idx, x_idx+0.5, x_idx+0.5, x_idx, x_idx, x_idx+0.5, x_idx+0.5],
+                    x=[x_idx, x_idx, x_idx+0.6, x_idx+0.6, x_idx, x_idx, x_idx+0.6, x_idx+0.6],
                     y=[0, 1, 1, 0, 0, 1, 1, 0],
                     z=[0, 0, 0, 0, i['Gain'], i['Gain'], i['Gain'], i['Gain']],
                     color='green' if i['Gain'] >= 0 else 'red',
@@ -103,15 +121,15 @@ if check_auth():
                 scene=dict(
                     xaxis=dict(tickvals=list(range(len(dati))), ticktext=[i['Nome'] for i in dati], title="Titoli"),
                     yaxis=dict(visible=False),
-                    zaxis=dict(title="Utile (Euro)")
+                    zaxis=dict(title="Utile (EUR)")
                 ),
                 margin=dict(l=0, r=0, b=0, t=0)
             )
             st.plotly_chart(fig3d, use_container_width=True)
 
-            # --- ISTOGRAMMA CLASSICO ---
+            # --- ISTOGRAMMA PROFESSIONALE ---
             st.subheader("Rendimento Euro")
-            fig_bar = px.bar(dati, x='Nome', y='Gain', color='Gain', color_continuous_scale='RdYlGn')
+            fig_bar = px.bar(dati, x='Nome', y='Gain', color='Gain', color_continuous_scale='RdYlGn', text_auto='.2f')
             st.plotly_chart(fig_bar, use_container_width=True)
 
     if st.sidebar.button("Logout"):
