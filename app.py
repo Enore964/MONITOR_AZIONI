@@ -38,20 +38,16 @@ if login():
     @st.cache_data(ttl=60) 
     def fetch_data():
         try:
-            # Recupero cambio Euro/Dollaro
             ex = yf.Ticker("USDEUR=X").history(period="1d")['Close'].iloc[-1]
         except: ex = 0.92
         
         results = []
-        
         for k, info in LISTA_TITOLI.items():
             try:
                 stock = yf.Ticker(info["t"])
                 h = stock.history(period="5d")
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
-                    
-                    # Orario specifico del fetch per questa azione
                     ora_it = datetime.datetime.now() + timedelta(hours=1)
                     ora_azione = ora_it.strftime('%H:%M:%S')
                     
@@ -71,7 +67,6 @@ if login():
                         "Val": val, "Gain": gain, "Var": var,
                         "Perc": (gain / inv * 100), "Ora": ora_azione
                     })
-                # Piccolo delay per non sovraccaricare le API
                 time.sleep(0.2)
             except: continue
         return results
@@ -80,10 +75,11 @@ if login():
 
     if data:
         if scelta == "📋 Lista":
-            st.title("📋 Portafoglio")
+            # Modifica richiesta: Titolo "Portafoglio Enore" con "Portafoglio" in italic
+            st.markdown("# *Portafoglio* Enore")
+            
             tot_gain = sum(i['Gain'] for i in data)
             
-            # Gauge grafico dell'utile totale
             fig = go.Figure(go.Indicator(
                 mode = "gauge+number", value = tot_gain,
                 title = {'text': "Utile Totale (Euro)"},
@@ -96,12 +92,9 @@ if login():
             st.metric("UTILE ATTUALE", f"€ {tot_gain:.2f}")
             st.divider()
 
-            # Visualizzazione singole azioni
             for i in data:
                 color = "#28a745" if i['Gain'] >= 0 else "#dc3545"
-                # Nome Azione colorato
                 st.markdown(f"<h3 style='margin-bottom:0; color: {color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
-                # Orario aggiornamento ben visibile
                 st.markdown(f"🕒 *Aggiornato alle: {i['Ora']}*") 
                 
                 with st.container(border=True):
@@ -112,8 +105,9 @@ if login():
 
         elif scelta == "📊 Grafici":
             st.title("📊 Analisi Avanzata")
+            # Anche qui aggiungiamo il riferimento personalizzato
+            st.markdown("### Analisi di *Portafoglio* Enore")
             
-            # 1. Grafico Sunburst
             st.subheader("Rendimento e Pesi Portafoglio")
             fig_sun = px.sunburst(
                 data, path=['Nome'], values='Val', color='Gain',
@@ -121,19 +115,6 @@ if login():
             )
             st.plotly_chart(fig_sun, use_container_width=True)
 
-            # 2. Grafico Radar
-            st.subheader("Confronto Performance")
-            fig_radar = go.Figure()
-            for i in data:
-                fig_radar.add_trace(go.Scatterpolar(
-                    r=[i['Prezzo'], i['Gain'], abs(i['Var']) * 20],
-                    theta=['Prezzo (€)', 'Utile (€)', 'Volatilità'],
-                    fill='toself', name=i['Nome']
-                ))
-            fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True)
-            st.plotly_chart(fig_radar, use_container_width=True)
-
-            # 3. Istogramma Classico
             st.subheader("Utile per Titolo (Euro)")
             fig_bar = px.bar(
                 data, x='Nome', y='Gain', color='Gain',
