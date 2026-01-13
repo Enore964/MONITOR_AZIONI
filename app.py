@@ -26,7 +26,7 @@ if check_password():
     # Ho rimosso gli ISIN come chiavi per evitare il blocco di sicurezza di GitHub
     MY_STOCKS = {
         "ORO": {"t": "PHAU.MI", "acq": 352.79, "qta": 30, "n": "Oro Fisico"}, 
-        "URA": {"t": "49M.F",   "acq": 48.68,  "qta": 200, "n": "Uranio Milano"},  
+        "URA": {"t": "U3O8.L", "acq": 48.68, "qta": 200, "n": "Uranio Milano/Ldn"},  
         "LDO": {"t": "LDO.MI",  "acq": 59.855, "qta": 200, "n": "Leonardo"},  
         "EXA": {"t": "EXAI.MI", "acq": 1.9317, "qta": 3000, "n": "Expert AI"},   
         "AVI": {"t": "AVIO.MI", "acq": 36.6,   "qta": 250, "n": "Avio Spazio"}    
@@ -92,3 +92,4 @@ if check_password():
     if st.sidebar.button("Esci"):
         st.session_state["pass_ok"] = False
         st.rerun()
+
