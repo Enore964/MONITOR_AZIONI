@@ -3,7 +3,7 @@ import yfinance as yf
 import plotly.graph_objects as go
 import plotly.express as px
 import time
-from datetime import datetime # Nuova importazione per l'orario
+from datetime import datetime
 
 # --- ACCESSO ---
 CHIAVE_SITO = "1"
@@ -34,22 +34,23 @@ if login():
     st.sidebar.title("📱 Menu")
     scelta = st.sidebar.radio("Vai a:", ["📋 Lista", "📊 Grafici"])
 
-    @st.cache_data(ttl=300)
+    # Ridotto a 60 secondi così l'orario è sempre fresco quando aggiorni
+    @st.cache_data(ttl=60) 
     def fetch_data():
         try:
             ex = yf.Ticker("USDEUR=X").history(period="1d")['Close'].iloc[-1]
         except: ex = 0.92
         
         results = []
+        # Prendiamo l'ora attuale del sistema
+        ora_attuale = datetime.now().strftime('%H:%M:%S')
+        
         for k, info in LISTA_TITOLI.items():
             try:
                 stock = yf.Ticker(info["t"])
                 h = stock.history(period="5d")
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
-                    
-                    # Orario dell'ultimo dato disponibile
-                    ora_dato = h.index[-1].strftime('%H:%M (%d/%m)')
                     
                     if info["usa"]:
                         p_eur = (last_p * ex) * 1.15 
@@ -66,7 +67,7 @@ if login():
                         "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
                         "Val": val, "Gain": gain, "Var": var,
                         "Perc": (gain / inv * 100),
-                        "Ora": ora_dato # Salviamo l'ora
+                        "Ora": ora_attuale # Usiamo l'ora di scaricamento reale
                     })
                 time.sleep(0.4)
             except: continue
@@ -79,7 +80,6 @@ if login():
             st.title("📋 Portafoglio")
             tot_gain = sum(i['Gain'] for i in data)
             
-            # Tachimetro
             fig = go.Figure(go.Indicator(
                 mode = "gauge+number", value = tot_gain,
                 title = {'text': "Utile Totale (€)"},
@@ -95,7 +95,7 @@ if login():
             for i in data:
                 color = "#28a745" if i['Gain'] >= 0 else "#dc3545"
                 st.markdown(f"<h3 style='margin-bottom:0; color: {color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
-                st.caption(f"🕒 Ultimo dato: {i['Ora']}") # Mostra l'ora sotto il titolo
+                st.caption(f"🕒 Aggiornato alle: {i['Ora']}") 
                 
                 with st.container(border=True):
                     c1, c2 = st.columns(2)
