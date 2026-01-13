@@ -6,13 +6,13 @@ import time
 import datetime
 from datetime import timedelta
 
-# --- LOGIN SICURO ---
+# --- LOGIN ---
 def check_auth():
     if "p_ok" not in st.session_state:
         st.session_state["p_ok"] = False
     if st.session_state["p_ok"]: return True
     st.title("Area Riservata")
-    cod = st.text_input("Codice Accesso:", type="password")
+    cod = st.text_input("Codice:", type="password")
     if st.button("Entra"):
         if cod == "1":
             st.session_state["p_ok"] = True
@@ -21,7 +21,7 @@ def check_auth():
     return False
 
 if check_auth():
-    # --- DATI PORTAFOGLIO ---
+    # --- DATI ---
     TITOLI = {
         "GOLD": {"t": "PHAU.MI", "acq": 352.79, "q": 30,   "n": "Oro Fisico", "usa": False}, 
         "URA":  {"t": "URA",     "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": True},  
@@ -30,18 +30,15 @@ if check_auth():
         "AVI":  {"t": "AVIO.MI", "acq": 36.6,   "q": 250,  "n": "Avio Spazio", "usa": False}    
     }
 
-    scelta = st.sidebar.radio("Scegli Vista:", ["Lista Titoli", "Analisi Grafica"])
+    scelta = st.sidebar.radio("Menu", ["Lista", "Grafici"])
 
     @st.cache_data(ttl=60) 
     def scarica_dati():
         try:
             cambio = yf.Ticker("USDEUR=X").history(period="1d")['Close'].iloc[-1]
         except: cambio = 0.92
-        
         output = []
-        # Ora Italiana corretta (UTC+1)
         ora_it = (datetime.datetime.now() + timedelta(hours=1)).strftime('%H:%M:%S')
-        
         for k, info in TITOLI.items():
             try:
                 tk = yf.Ticker(info["t"])
@@ -53,7 +50,6 @@ if check_auth():
                     val = p_eur * info["q"]
                     guadagno = val - inv
                     var = ((last - h['Close'].iloc[-2]) / h['Close'].iloc[-2]) * 100
-                    
                     output.append({
                         "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
                         "Val": val, "Gain": guadagno, "Var": var,
@@ -63,44 +59,36 @@ if check_auth():
             except: continue
         return output
 
-    dati = scarica_dati()
+    data = scarica_dati()
 
-    if dati:
-        if scelta == "Lista Titoli":
-            st.title("Stato Portafoglio")
-            tot_gain = sum(i['Gain'] for i in dati)
+    if data:
+        if scelta == "Lista":
+            st.title("Monitor Portafoglio")
+            tot_gain = sum(i['Gain'] for i in data)
             
-            # TACHIMETRO (GAUGE) RIPRISTINATO
+            # Tachimetro (Gauge)
             fig_gauge = go.Figure(go.Indicator(
-                mode = "gauge+number",
-                value = tot_gain,
+                mode = "gauge+number", value = tot_gain,
                 title = {'text': "Utile Totale (EUR)"},
-                gauge = {
-                    'axis': {'range': [-5000, 5000]},
-                    'bar': {'color': "green" if tot_gain >= 0 else "red"},
-                    'steps': [
-                        {'range': [-5000, 0], 'color': "#ffe6e6"},
-                        {'range': [0, 5000], 'color': "#e6ffec"}
-                    ],
-                }
+                gauge = {'axis': {'range': [-5000, 5000]},
+                         'bar': {'color': "green" if tot_gain >= 0 else "red"}}
             ))
-            fig_gauge.update_layout(height=350)
             st.plotly_chart(fig_gauge, use_container_width=True)
-            
             st.metric("GUADAGNO TOTALE", f"EUR {tot_gain:.2f}")
             st.divider()
 
-            for i in dati:
+            for i in data:
                 with st.container(border=True):
                     c1, c2 = st.columns(2)
                     c1.subheader(i['Nome'])
-                    st.caption(f"Aggiornato ore: {i['Ora']}")
                     c1.metric("Prezzo", f"{i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
                     c2.metric("Utile", f"{i['Gain']:.2f}", f"{i['Perc']:.2f}%")
 
-        elif scelta == "Analisi Grafica":
-            st.title("Visualizzazioni 3D")
-
-            # --- VERO GRAFICO A BARRE 3D ---
-            st.subheader("Rendimento 3D Solido")
-            fig3d = go.Figure()
+        elif scelta == "Grafici":
+            st.title("Analisi Visiva")
+            
+            # 1. Grafico a barre con colori dinamici
+            st.subheader("Rendimento per Titolo")
+            fig_bar = px.bar(data, x='Nome', y='Gain', color='Gain',
+                             color_continuous_scale='RdYlGn', text_auto='.2f')
+            st.plotly_chart(fig_bar, use_container_
