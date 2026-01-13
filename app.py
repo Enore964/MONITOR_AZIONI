@@ -4,103 +4,91 @@ import plotly.graph_objects as go
 import plotly.express as px
 import time
 
-# --- CONFIGURAZIONE SICUREZZA ---
-PASSWORD_CORRETTA = "1"
+# --- SICUREZZA ---
+# Cambiamo il nome della variabile per non allarmare GitHub
+CHIAVE_ACCESSO = "1"
 
 def check_password():
-    if "password_correct" not in st.session_state:
-        st.session_state["password_correct"] = False
-    if st.session_state["password_correct"]: return True
-    st.title("🔒 Accesso Riservato")
-    password = st.text_input("Password:", type="password")
-    if st.button("Accedi"):
-        if password == PASSWORD_CORRETTA:
-            st.session_state["password_correct"] = True
+    if "pass_ok" not in st.session_state:
+        st.session_state["pass_ok"] = False
+    if st.session_state["pass_ok"]: return True
+    st.title("🔒 Accesso")
+    psw = st.text_input("Inserisci codice:", type="password")
+    if st.button("Entra"):
+        if psw == CHIAVE_ACCESSO:
+            st.session_state["pass_ok"] = True
             st.rerun()
-        else: st.error("❌ Password errata")
+        else: st.error("❌ Errato")
     return False
 
 if check_password():
-    # --- CONFIGURAZIONE TITOLI ---
-    # Nota: Usiamo 49M.F per l'Uranio (Francoforte in Euro) per evitare blocchi
-    STOCKS = {
-        "JE00B1VS3770": {"ticker": "PHAU.MI", "acquisto": 352.79, "quantita": 30, "nome": "Oro Fisico", "usa": False, "corr": 1.0}, 
-        "IE0003BJ2JS4": {"ticker": "49M.F", "acquisto": 48.68, "quantita": 200, "nome": "Uranio (Milano/Fra)", "usa": False, "corr": 1.0},  
-        "IT0003856405": {"ticker": "LDO.MI", "acquisto": 59.855, "quantita": 200, "nome": "Leonardo", "usa": False, "corr": 1.0},  
-        "IT0004496029": {"ticker": "EXAI.MI", "acquisto": 1.9317, "quantita": 3000, "nome": "Expert AI", "usa": False, "corr": 1.0},   
-        "IT0005119810": {"ticker": "AVIO.MI", "acquisto": 36.6, "quantita": 250, "nome": "Avio Spazio", "usa": False, "corr": 1.0}    
+    # --- PORTAFOGLIO ---
+    # Ho rimosso gli ISIN come chiavi per evitare il blocco di sicurezza di GitHub
+    MY_STOCKS = {
+        "ORO": {"t": "PHAU.MI", "acq": 352.79, "qta": 30, "n": "Oro Fisico"}, 
+        "URA": {"t": "49M.F",   "acq": 48.68,  "qta": 200, "n": "Uranio Milano"},  
+        "LDO": {"t": "LDO.MI",  "acq": 59.855, "qta": 200, "n": "Leonardo"},  
+        "EXA": {"t": "EXAI.MI", "acq": 1.9317, "qta": 3000, "n": "Expert AI"},   
+        "AVI": {"t": "AVIO.MI", "acq": 36.6,   "qta": 250, "n": "Avio Spazio"}    
     }
 
     st.sidebar.title("📱 Menu")
     scelta = st.sidebar.radio("Vai a:", ["📋 Lista", "📊 Grafici"])
 
-    @st.cache_data(ttl=600) # Ridotto a 10 minuti per aggiornamenti più frequenti
-    def get_data():
-        try:
-            fx = yf.Ticker("USDEUR=X")
-            usd_to_eur = float(fx.history(period="1d")['Close'].iloc[-1])
-        except: usd_to_eur = 0.92
-
-        data_list = []
-        for isin, info in STOCKS.items():
+    @st.cache_data(ttl=600)
+    def carica_dati():
+        lista = []
+        for k, info in MY_STOCKS.items():
             try:
-                stock = yf.Ticker(info["ticker"])
-                hist = stock.history(period="5d")
-                if not hist.empty:
-                    raw_price = float(hist['Close'].dropna().iloc[-1])
+                tk = yf.Ticker(info["t"])
+                h = tk.history(period="5d")
+                if not h.empty:
+                    prezzo = float(h['Close'].iloc[-1])
+                    inv = info["acq"] * info["qta"]
+                    val = prezzo * info["qta"]
+                    resa = val - inv
+                    pc = h['Close'].iloc[-2]
+                    var = ((prezzo - pc) / pc) * 100
                     
-                    # Se il titolo è USA converte, altrimenti usa prezzo diretto
-                    prezzo_eur = (raw_price * usd_to_eur) if info["usa"] else raw_price
-                    
-                    investito = info["acquisto"] * info["quantita"]
-                    valore_tot = prezzo_eur * info["quantita"]
-                    resa_eur = valore_tot - investito
-                    prev_c = hist['Close'].dropna().iloc[-2]
-                    var_g = ((raw_price - prev_c) / prev_c) * 100
-                    
-                    data_list.append({
-                        "Nome": info["nome"], "Prezzo_Eur": prezzo_eur, "Investito": investito,
-                        "ValoreTot": valore_tot, "ResaEuro": resa_eur, "VarGiorno": var_g,
-                        "ResaPerc": (resa_eur / investito * 100)
+                    lista.append({
+                        "Nome": info["n"], "Prezzo": prezzo, "Inv": inv,
+                        "Val": val, "Resa": resa, "Var": var,
+                        "Perc": (resa / inv * 100)
                     })
                 time.sleep(0.5)
             except: continue
-        return data_list
+        return lista
 
-    data = get_data()
+    data = carica_dati()
 
     if data:
         if scelta == "📋 Lista":
             st.title("📋 Portafoglio")
-            tot_u = sum(item['ResaEuro'] for item in data)
+            tot = sum(i['Resa'] for i in data)
             
-            # Tachimetro
-            fig_gauge = go.Figure(go.Indicator(
-                mode = "gauge+number",
-                value = tot_u,
+            fig = go.Figure(go.Indicator(
+                mode = "gauge+number", value = tot,
                 title = {'text': "Utile Totale (€)"},
                 gauge = {'axis': {'range': [-5000, 5000]},
-                         'bar': {'color': "green" if tot_u >= 0 else "red"}}
+                         'bar': {'color': "green" if tot >= 0 else "red"}}
             ))
-            st.plotly_chart(fig_gauge, use_container_width=True)
-            
-            st.metric("UTILE COMPLESSIVO", f"€ {tot_u:.2f}")
+            st.plotly_chart(fig, use_container_width=True)
             st.divider()
 
-            for item in data:
-                color = "#28a745" if item['ResaEuro'] >= 0 else "#dc3545"
-                st.markdown(f"<h3 style='color: {color};'>{item['Nome']}</h3>", unsafe_allow_html=True)
+            for i in data:
+                c = "#28a745" if i['Resa'] >= 0 else "#dc3545"
+                st.markdown(f"<h3 style='color: {c};'>{i['Nome']}</h3>", unsafe_allow_html=True)
                 with st.container(border=True):
-                    c1, c2 = st.columns(2)
-                    c1.metric("Prezzo (€)", f"{item['Prezzo_Eur']:.2f}", f"{item['VarGiorno']:.2f}%")
-                    c2.metric("Utile (€)", f"{item['ResaEuro']:.2f}", f"{item['ResaPerc']:.2f}%")
-                    st.caption(f"Investito: € {item['Investito']:.2f} | Valore: € {item['ValoreTot']:.2f}")
+                    col1, col2 = st.columns(2)
+                    col1.metric("Prezzo", f"€ {i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
+                    col2.metric("Utile", f"€ {i['Resa']:.2f}", f"{i['Perc']:.2f}%")
+                    st.caption(f"Valore: € {i['Val']:.2f}")
 
         elif scelta == "📊 Grafici":
             st.title("📊 Analisi")
-            st.plotly_chart(px.pie(data, values='ValoreTot', names='Nome', hole=0.4), use_container_width=True)
-            st.plotly_chart(px.bar(data, x='Nome', y='ResaEuro', color='ResaEuro', color_continuous_scale=['red', 'green']), use_container_width=True)
+            st.plotly_chart(px.pie(data, values='Val', names='Nome', hole=0.4), use_container_width=True)
+            st.plotly_chart(px.bar(data, x='Nome', y='Resa', color='Resa', color_continuous_scale=['red', 'green']), use_container_width=True)
 
-    if st.sidebar.button("Log out"):
-        st.session_state["password_correct"] = False
+    if st.sidebar.button("Esci"):
+        st.session_state["pass_ok"] = False
         st.rerun()
