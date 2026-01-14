@@ -62,21 +62,17 @@ if login():
             except: continue
         return results
 
-    # --- FUNZIONE TACHIMETRO CON FONDO GIALLO ---
+    # --- FUNZIONE TACHIMETRO CON SEMICERCHIO GIALLO ---
     def crea_tachimetro(valore, titolo="Utile Totale"):
         fig = go.Figure(go.Indicator(
             mode = "gauge+number", 
             value = valore,
-            number = {'valueformat': '.3f', 'suffix': ' €', 'font': {'color': 'black'}},
-            title = {'text': titolo, 'font': {'size': 24, 'color': 'black'}},
+            number = {'valueformat': '.3f', 'suffix': ' €'},
+            title = {'text': titolo, 'font': {'size': 24}},
             gauge = {
-                'axis': {'range': [-5000, 5000], 'tickformat': '.0f', 'tickcolor': 'black'},
+                'axis': {'range': [-5000, 5000], 'tickformat': '.0f'},
                 'bar': {'color': "green" if valore >= 0 else "red"},
-                'bgcolor': "white", # Colore interno dell'arco
-                'steps': [
-                    {'range': [-5000, 0], 'color': "#ffcccc"}, # Rosso tenue
-                    {'range': [0, 5000], 'color': "#ccffcc"}   # Verde tenue
-                ],
+                'bgcolor': "yellow", # SFONDO DEL SEMICERCHIO GIALLO
                 'threshold': {
                     'line': {'color': "black", 'width': 3},
                     'thickness': 0.8,
@@ -84,10 +80,7 @@ if login():
                 }
             }
         ))
-        # Impostazione del fondo Giallo
         fig.update_layout(
-            paper_bgcolor = "yellow", 
-            plot_bgcolor = "yellow",
             height=350, 
             margin=dict(t=80, b=20, l=30, r=30)
         )
