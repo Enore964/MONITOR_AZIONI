@@ -62,20 +62,20 @@ if login():
             except: continue
         return results
 
-    data = fetch_data()
-
+    # --- FUNZIONE TACHIMETRO CON FONDO GIALLO ---
     def crea_tachimetro(valore, titolo="Utile Totale"):
         fig = go.Figure(go.Indicator(
             mode = "gauge+number", 
             value = valore,
-            number = {'valueformat': '.3f', 'suffix': ' €'},
-            title = {'text': titolo, 'font': {'size': 24}},
+            number = {'valueformat': '.3f', 'suffix': ' €', 'font': {'color': 'black'}},
+            title = {'text': titolo, 'font': {'size': 24, 'color': 'black'}},
             gauge = {
-                'axis': {'range': [-5000, 5000], 'tickformat': '.0f'},
+                'axis': {'range': [-5000, 5000], 'tickformat': '.0f', 'tickcolor': 'black'},
                 'bar': {'color': "green" if valore >= 0 else "red"},
+                'bgcolor': "white", # Colore interno dell'arco
                 'steps': [
-                    {'range': [-5000, 0], 'color': "#ffe6e6"},
-                    {'range': [0, 5000], 'color': "#e6ffec"}
+                    {'range': [-5000, 0], 'color': "#ffcccc"}, # Rosso tenue
+                    {'range': [0, 5000], 'color': "#ccffcc"}   # Verde tenue
                 ],
                 'threshold': {
                     'line': {'color': "black", 'width': 3},
@@ -84,8 +84,16 @@ if login():
                 }
             }
         ))
-        fig.update_layout(height=350, margin=dict(t=80, b=20, l=30, r=30))
+        # Impostazione del fondo Giallo
+        fig.update_layout(
+            paper_bgcolor = "yellow", 
+            plot_bgcolor = "yellow",
+            height=350, 
+            margin=dict(t=80, b=20, l=30, r=30)
+        )
         return fig
+
+    data = fetch_data()
 
     if data:
         df = pd.DataFrame(data)
@@ -103,29 +111,4 @@ if login():
                 st.markdown(f"🕒 *Aggiornato alle: {i['Ora']}*") 
                 with st.container(border=True):
                     c1, c2 = st.columns(2)
-                    c1.metric("Prezzo", f"€ {i['Prezzo']:.3f}", f"{i['Var']:.3f}%")
-                    c2.metric("Utile", f"€ {i['Gain']:.3f}", f"{i['Perc']:.3f}%")
-                    st.caption(f"Valore: € {i['Val']:.3f} | Investito: € {i['Inv']:.3f}")
-
-        elif scelta == "📊 Grafici":
-            st.title("📊 Analisi Avanzata")
-            st.markdown("### Analisi di *Portafoglio Enore*")
-            
-            # Tachimetro aggiunto anche nella sezione grafici
-            st.plotly_chart(crea_tachimetro(tot_gain, "Riepilogo Totale"), use_container_width=True)
-            
-            st.divider()
-            
-            # Grafico a barre solo per i singoli titoli
-            fig_bar = px.bar(
-                df, x='Nome', y='Gain', 
-                color='Gain',
-                color_continuous_scale='RdYlGn', 
-                text_auto='.3f',
-                title="Dettaglio Utile per Singolo Titolo"
-            )
-            st.plotly_chart(fig_bar, use_container_width=True)
-
-    if st.sidebar.button("Logout"):
-        st.session_state["p_ok"] = False
-        st.rerun()
+                    c1.metric("Prezzo", f"€ {i['Prezzo']:.3
