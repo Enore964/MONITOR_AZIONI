@@ -23,9 +23,10 @@ def login():
     return False
 
 if login():
-    # --- DATI PORTAFOGLIO (ORDINE E TICKER MILANO AGGIORNATI) ---
+    # --- DATI PORTAFOGLIO ---
+    # Usiamo URAM.MI che è il ticker più affidabile per l'Uranio a Milano
     LISTA_TITOLI = {
-        "URA":  {"t": "U92.MI",    "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": False},  
+        "URA":  {"t": "URAM.MI",   "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": False},  
         "LDO":  {"t": "LDO.MI",    "acq": 59.855, "q": 200,  "n": "Leonardo", "usa": False},  
         "EXA":  {"t": "EXAI.MI",   "acq": 1.9317, "q": 3000, "n": "Expert AI", "usa": False},   
         "AVI":  {"t": "AVIO.MI",   "acq": 36.6,   "q": 250,  "n": "Avio Spazio", "usa": False},
@@ -41,15 +42,14 @@ if login():
         for k, info in LISTA_TITOLI.items():
             try:
                 stock = yf.Ticker(info["t"])
-                h = stock.history(period="5d")
+                # Chiediamo un periodo più lungo per essere sicuri di avere i dati
+                h = stock.history(period="1mo") 
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
                     
-                    # Orario locale aggiornato
                     ora_it = datetime.datetime.now() + timedelta(hours=1)
                     ora_azione = ora_it.strftime('%H:%M:%S')
                     
-                    # Ora tutti i titoli sono su Milano (.MI), non serve più conversione USD
                     p_eur = last_p
                     
                     inv = info["acq"] * info["q"]
@@ -64,14 +64,14 @@ if login():
                         "Perc": (gain / inv * 100), "Ora": ora_azione
                     })
                 time.sleep(0.2)
-            except: continue
+            except Exception as e:
+                continue
         return results
 
     data = fetch_data()
 
     if data:
         if scelta == "📋 Lista":
-            # Titolo in italic come richiesto
             st.markdown("# *Portafoglio Enore*")
             
             tot_gain = sum(i['Gain'] for i in data)
