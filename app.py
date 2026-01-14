@@ -63,7 +63,6 @@ if login():
             except: continue
         return results
 
-    # --- FUNZIONE TACHIMETRO CON SEMICERCHIO BEIGE ---
     def crea_tachimetro(valore, titolo="Utile Totale"):
         fig = go.Figure(go.Indicator(
             mode = "gauge+number", 
@@ -73,7 +72,7 @@ if login():
             gauge = {
                 'axis': {'range': [-5000, 5000], 'tickformat': '.0f'},
                 'bar': {'color': "green" if valore >= 0 else "red"},
-                'bgcolor': "#F5F5DC", # SFONDO DEL SEMICERCHIO BEIGE
+                'bgcolor': "#F5F5DC", 
                 'threshold': {
                     'line': {'color': "black", 'width': 3},
                     'thickness': 0.8,
@@ -81,10 +80,7 @@ if login():
                 }
             }
         ))
-        fig.update_layout(
-            height=350, 
-            margin=dict(t=80, b=20, l=30, r=30)
-        )
+        fig.update_layout(height=350, margin=dict(t=80, b=20, l=30, r=30))
         return fig
 
     data = fetch_data()
@@ -94,7 +90,16 @@ if login():
         tot_gain = df['Gain'].sum()
 
         if scelta == "📋 Lista":
-            st.markdown("# *Portafoglio Enore*")
+            # --- TITOLO RIMPICCIOLITO PER CELLULARE ---
+            st.markdown(
+                """
+                <h2 style='text-align: left; font-style: italic; font-size: 26px; white-space: nowrap;'>
+                Portafoglio Enore
+                </h2>
+                """, 
+                unsafe_allow_html=True
+            )
+            
             st.plotly_chart(crea_tachimetro(tot_gain), use_container_width=True)
             st.metric("UTILE ATTUALE", f"€ {tot_gain:.3f}")
             st.divider()
