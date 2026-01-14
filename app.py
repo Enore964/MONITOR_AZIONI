@@ -5,6 +5,7 @@ import plotly.express as px
 import time
 import datetime
 from datetime import timedelta
+import pandas as pd
 
 # --- ACCESSO ---
 CHIAVE_SITO = "1"
@@ -64,28 +65,32 @@ if login():
     data = fetch_data()
 
     if data:
-        tot_gain = sum(i['Gain'] for i in data)
+        df = pd.DataFrame(data)
+        tot_gain = df['Gain'].sum()
 
         if scelta == "📋 Lista":
             st.markdown("# *Portafoglio Enore*")
             
-            # --- CORREZIONE TACHIMETRO ---
+            # --- TACHIMETRO SINCRONIZZATO ---
             fig = go.Figure(go.Indicator(
                 mode = "gauge+number", 
                 value = tot_gain,
                 number = {'valueformat': '.3f', 'suffix': ' €'},
-                title = {'text': "Utile Totale"},
                 gauge = {
                     'axis': {'range': [-5000, 5000], 'tickformat': '.0f'},
                     'bar': {'color': "green" if tot_gain >= 0 else "red"},
+                    'steps': [
+                        {'range': [-5000, 0], 'color': "#ffe6e6"},
+                        {'range': [0, 5000], 'color': "#e6ffec"}
+                    ],
                     'threshold': {
-                        'line': {'color': "white", 'width': 2},
-                        'thickness': 0.75,
+                        'line': {'color': "black", 'width': 3},
+                        'thickness': 0.8,
                         'value': tot_gain
                     }
                 }
             ))
-            fig.update_layout(height=350)
+            fig.update_layout(height=350, margin=dict(t=50, b=20))
             st.plotly_chart(fig, use_container_width=True)
             
             st.metric("UTILE ATTUALE", f"€ {tot_gain:.3f}")
@@ -105,14 +110,24 @@ if login():
             st.title("📊 Analisi Avanzata")
             st.markdown("### Analisi di *Portafoglio Enore*")
             
-            # --- AGGIUNTA TOTALE UTILI NEI GRAFICI ---
+            # Creazione dataset per il grafico con riga totale
+            df_grafico = df[['Nome', 'Gain']].copy()
+            df_totale = pd.DataFrame([{"Nome": "TOTALONE", "Gain": tot_gain}])
+            df_finale = pd.concat([df_grafico, df_totale], ignore_index=True)
+            
             st.subheader(f"Utile Complessivo: € {tot_gain:.3f}")
             
+            # --- GRAFICO A BARRE CON TOTALE ---
             fig_bar = px.bar(
-                data, x='Nome', y='Gain', color='Gain',
-                color_continuous_scale='RdYlGn', text_auto='.3f',
-                title="Dettaglio Utile per Titolo (Euro)"
+                df_finale, x='Nome', y='Gain', 
+                color='Gain',
+                color_continuous_scale='RdYlGn', 
+                text_auto='.3f',
+                title="Dettaglio Utile e Totale Portafoglio"
             )
+            # Evidenziamo visivamente la barra del totale
+            fig_bar.update_traces(marker_line_width=2, marker_line_color="black", selector=dict(name="TOTALONE"))
+            
             st.plotly_chart(fig_bar, use_container_width=True)
 
     if st.sidebar.button("Logout"):
