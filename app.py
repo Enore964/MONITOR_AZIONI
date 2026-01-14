@@ -36,7 +36,6 @@ if login():
     st.sidebar.title("📱 Menu")
     scelta = st.sidebar.radio("Vai a:", ["📋 Lista", "📊 Grafici"])
 
-    # --- AGGIORNAMENTO 30 SECONDI ---
     @st.cache_data(ttl=30) 
     def fetch_data():
         results = []
@@ -90,14 +89,10 @@ if login():
         tot_gain = df['Gain'].sum()
 
         if scelta == "📋 Lista":
-            # --- TITOLO DINAMICO (COLORE IN BASE ALL'UTILE) ---
+            # Titolo dinamico Verde/Rosso
             colore_titolo = "#28a745" if tot_gain >= 0 else "#dc3545"
             st.markdown(
-                f"""
-                <h2 style='text-align: left; font-style: italic; font-size: 26px; white-space: nowrap; color: {colore_titolo};'>
-                Portafoglio Enore
-                </h2>
-                """, 
+                f"<h2 style='text-align: left; font-style: italic; font-size: 26px; white-space: nowrap; color: {colore_titolo};'>Portafoglio Enore</h2>", 
                 unsafe_allow_html=True
             )
             
@@ -106,14 +101,46 @@ if login():
             st.divider()
 
             for i in data:
-                color = "#28a745" if i['Gain'] >= 0 else "#dc3545"
-                st.markdown(f"<h3 style='margin-bottom:0; color: {color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
+                # Definisco i colori in base al gain del titolo
+                if i['Gain'] >= 0:
+                    bg_color = "#eaffea"  # Verde chiarissimo
+                    border_color = "#28a745" # Verde
+                    text_color = "#28a745"
+                else:
+                    bg_color = "#ffeaea"  # Rosso chiarissimo
+                    border_color = "#dc3545" # Rosso
+                    text_color = "#dc3545"
+
+                # Titolo Azione
+                st.markdown(f"<h3 style='margin-bottom:0; color: {text_color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
                 st.markdown(f"🕒 *Aggiornato alle: {i['Ora']}*") 
-                with st.container(border=True):
-                    c1, c2 = st.columns(2)
-                    c1.metric("Prezzo", f"€ {i['Prezzo']:.3f}", f"{i['Var']:.3f}%")
-                    c2.metric("Utile", f"€ {i['Gain']:.3f}", f"{i['Perc']:.3f}%")
-                    st.caption(f"Valore: € {i['Val']:.3f} | Investito: € {i['Inv']:.3f}")
+                
+                # Riquadro personalizzato con sfondo e bordo colorato
+                st.markdown(
+                    f"""
+                    <div style="
+                        background-color: {bg_color}; 
+                        border: 2px solid {border_color}; 
+                        padding: 15px; 
+                        border-radius: 10px; 
+                        margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <div>
+                                <p style="margin:0; font-weight: bold; color: black;">Prezzo</p>
+                                <p style="margin:0; font-size: 20px; color: {text_color};">€ {i['Prezzo']:.3f} ({i['Var']:.3f}%)</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <p style="margin:0; font-weight: bold; color: black;">Utile</p>
+                                <p style="margin:0; font-size: 20px; color: {text_color};">€ {i['Gain']:.3f} ({i['Perc']:.3f}%)</p>
+                            </div>
+                        </div>
+                        <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: gray;">
+                            Valore: € {i['Val']:.3f} | Investito: € {i['Inv']:.3f}
+                        </p>
+                    </div>
+                    """, 
+                    unsafe_allow_html=True
+                )
 
         elif scelta == "📊 Grafici":
             st.title("📊 Analisi Avanzata")
