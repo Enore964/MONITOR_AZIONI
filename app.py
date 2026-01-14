@@ -66,7 +66,7 @@ if login():
         fig = go.Figure(go.Indicator(
             mode = "gauge+number", 
             value = valore,
-            number = {'valueformat': '.3f', 'suffix': ' €'},
+            number = {'valueformat': '.3f', 'suffix': ' €', 'font': {'size': 30, 'weight': 'bold'}},
             title = {'text': titolo, 'font': {'size': 24}},
             gauge = {
                 'axis': {'range': [-5000, 5000], 'tickformat': '.0f'},
@@ -89,7 +89,6 @@ if login():
         tot_gain = df['Gain'].sum()
 
         if scelta == "📋 Lista":
-            # Titolo dinamico Verde/Rosso
             colore_titolo = "#28a745" if tot_gain >= 0 else "#dc3545"
             st.markdown(
                 f"<h2 style='text-align: left; font-style: italic; font-size: 26px; white-space: nowrap; color: {colore_titolo};'>Portafoglio Enore</h2>", 
@@ -101,21 +100,15 @@ if login():
             st.divider()
 
             for i in data:
-                # Definisco i colori in base al gain del titolo
                 if i['Gain'] >= 0:
-                    bg_color = "#eaffea"  # Verde chiarissimo
-                    border_color = "#28a745" # Verde
-                    text_color = "#28a745"
+                    bg_color = "#eaffea"; border_color = "#28a745"; text_color = "#28a745"
                 else:
-                    bg_color = "#ffeaea"  # Rosso chiarissimo
-                    border_color = "#dc3545" # Rosso
-                    text_color = "#dc3545"
+                    bg_color = "#ffeaea"; border_color = "#dc3545"; text_color = "#dc3545"
 
-                # Titolo Azione
-                st.markdown(f"<h3 style='margin-bottom:0; color: {text_color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
+                st.markdown(f"<h3 style='margin-bottom:0; color: {text_color}; font-weight: bold;'>{i['Nome']}</h3>", unsafe_allow_html=True)
                 st.markdown(f"🕒 *Aggiornato alle: {i['Ora']}*") 
                 
-                # Riquadro personalizzato con sfondo e bordo colorato
+                # RIQUADRO CON NUMERI IN GRASSETTO (BOLD)
                 st.markdown(
                     f"""
                     <div style="
@@ -126,15 +119,19 @@ if login():
                         margin-bottom: 20px;">
                         <div style="display: flex; justify-content: space-between;">
                             <div>
-                                <p style="margin:0; font-weight: bold; color: black;">Prezzo</p>
-                                <p style="margin:0; font-size: 20px; color: {text_color};">€ {i['Prezzo']:.3f} ({i['Var']:.3f}%)</p>
+                                <p style="margin:0; font-size: 14px; font-weight: normal; color: black;">Prezzo</p>
+                                <p style="margin:0; font-size: 20px; font-weight: bold; color: {text_color};">
+                                    € {i['Prezzo']:.3f} <span style="font-size: 14px;">({i['Var']:.3f}%)</span>
+                                </p>
                             </div>
                             <div style="text-align: right;">
-                                <p style="margin:0; font-weight: bold; color: black;">Utile</p>
-                                <p style="margin:0; font-size: 20px; color: {text_color};">€ {i['Gain']:.3f} ({i['Perc']:.3f}%)</p>
+                                <p style="margin:0; font-size: 14px; font-weight: normal; color: black;">Utile</p>
+                                <p style="margin:0; font-size: 20px; font-weight: bold; color: {text_color};">
+                                    € {i['Gain']:.3f} <span style="font-size: 14px;">({i['Perc']:.3f}%)</span>
+                                </p>
                             </div>
                         </div>
-                        <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: gray;">
+                        <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #444; font-weight: bold;">
                             Valore: € {i['Val']:.3f} | Investito: € {i['Inv']:.3f}
                         </p>
                     </div>
@@ -144,7 +141,6 @@ if login():
 
         elif scelta == "📊 Grafici":
             st.title("📊 Analisi Avanzata")
-            st.markdown("### Analisi di *Portafoglio Enore*")
             st.plotly_chart(crea_tachimetro(tot_gain, "Riepilogo Totale"), use_container_width=True)
             st.divider()
             fig_bar = px.bar(
