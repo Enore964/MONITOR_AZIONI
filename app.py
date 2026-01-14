@@ -42,15 +42,12 @@ if login():
         for k, info in LISTA_TITOLI.items():
             try:
                 stock = yf.Ticker(info["t"])
-                # Scarichiamo dati intraday con intervallo 5 minuti per il grafico
                 h = stock.history(period="1d", interval="5m") 
-                if h.empty: # Se mercato chiuso o errore, prendiamo ultimi 5 giorni
-                    h = stock.history(period="5d")
+                if h.empty: h = stock.history(period="5d")
                 
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
                     p_eur = last_p * info["corr"]
-                    # Prezzi corretti per il grafico lineare
                     prezzi_storia = (h['Close'] * info["corr"]).tolist()
                     
                     ora_it = datetime.datetime.now() + timedelta(hours=1)
@@ -59,7 +56,6 @@ if login():
                     val = p_eur * info["q"]
                     gain = val - inv
                     
-                    # Calcolo variazione rispetto alla chiusura precedente
                     h_prec = stock.history(period="5d")
                     prec_close = h_prec['Close'].iloc[-2] * info["corr"]
                     var = ((p_eur - prec_close) / prec_close) * 100
@@ -103,12 +99,22 @@ if login():
     if data:
         df = pd.DataFrame(data)
         tot_gain = df['Gain'].sum()
+        media_perc = df['Perc'].mean() # Calcolo della media dei rendimenti
 
         if scelta == "📋 Lista":
             color_stat = "#28a745" if tot_gain >= 0 else "#dc3545"
             st.markdown(f"<h2 style='font-style: italic; font-size: 26px; white-space: nowrap; color: {color_stat};'>Portafoglio Enore</h2>", unsafe_allow_html=True)
             st.plotly_chart(crea_tachimetro(tot_gain), use_container_width=True)
-            st.markdown(f"<div style='text-align: center; margin-top: -20px;'><p style='font-size: 16px; font-weight: bold; color: {color_stat};'>UTILE ATTUALE</p><p style='font-size: 32px; font-weight: bold; color: {color_stat};'>€ {tot_gain:.3f}</p></div>", unsafe_allow_html=True)
+            
+            # --- BLOCCO UTILE + MEDIA RENDIMENTO ---
+            st.markdown(f"""
+                <div style='text-align: center; margin-top: -20px;'>
+                    <p style='margin:0; font-size: 16px; font-weight: bold; color: {color_stat};'>UTILE ATTUALE</p>
+                    <p style='margin:0; font-size: 32px; font-weight: bold; color: {color_stat};'>€ {tot_gain:.3f}</p>
+                    <p style='margin:0; font-size: 14px; color: gray;'>Media Rendimento Totale</p>
+                    <p style='margin:0; font-size: 20px; font-weight: bold; color: {color_stat};'>{media_perc:.3f}%</p>
+                </div>
+                """, unsafe_allow_html=True)
             st.divider()
 
             for i in data:
@@ -128,17 +134,24 @@ if login():
                             <div style="text-align: right;"><p style="margin:0; font-size: 14px; color: black;">Utile</p>
                                  <p style="margin:0; font-size: 20px; font-weight: bold; color: {text_color};">€ {i['Gain']:.3f} <span style="font-size: 14px;">({i['Perc']:.3f}%)</span></p></div>
                         </div></div>""", unsafe_allow_html=True)
-                    
-                    # Inserimento del mini grafico (Sparkline)
                     st.plotly_chart(crea_sparkline(i['Storia'], text_color), use_container_width=True, config={'displayModeBar': False})
-                    
                     st.markdown(f"""<div style="background-color: {bg_color}; border: 1px solid {border_color}; padding: 10px; border-radius: 5px; margin-top: -15px;">
                         <p style="margin: 0; font-size: 12px; color: #444; font-weight: bold;">Valore: € {i['Val']:.3f} | Investito: € {i['Inv']:.3f}</p>
                     </div><br>""", unsafe_allow_html=True)
 
         elif scelta == "📊 Grafici":
+            color_stat = "#28a745" if tot_gain >= 0 else "#dc3545"
             st.title("📊 Analisi Avanzata")
             st.plotly_chart(crea_tachimetro(tot_gain, "Riepilogo Totale"), use_container_width=True)
+            
+            # --- AGGIUNTO ANCHE NEI GRAFICI ---
+            st.markdown(f"""
+                <div style='text-align: center; margin-top: -20px; margin-bottom: 20px;'>
+                    <p style='margin:0; font-size: 16px; font-weight: bold; color: {color_stat};'>UTILE ATTUALE: € {tot_gain:.3f}</p>
+                    <p style='margin:0; font-size: 18px; font-weight: bold; color: {color_stat};'>MEDIA RENDIMENTO: {media_perc:.3f}%</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
             st.divider()
             fig_bar = px.bar(df, x='Nome', y='Gain', color='Gain', color_continuous_scale='RdYlGn', text_auto='.3f')
             st.plotly_chart(fig_bar, use_container_width=True)
