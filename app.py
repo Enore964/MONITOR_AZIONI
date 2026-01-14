@@ -111,4 +111,24 @@ if login():
                 st.markdown(f"🕒 *Aggiornato alle: {i['Ora']}*") 
                 with st.container(border=True):
                     c1, c2 = st.columns(2)
-                    c1.metric("Prezzo", f"€ {i['Prezzo']:.3
+                    c1.metric("Prezzo", f"€ {i['Prezzo']:.3f}", f"{i['Var']:.3f}%")
+                    c2.metric("Utile", f"€ {i['Gain']:.3f}", f"{i['Perc']:.3f}%")
+                    st.caption(f"Valore: € {i['Val']:.3f} | Investito: € {i['Inv']:.3f}")
+
+        elif scelta == "📊 Grafici":
+            st.title("📊 Analisi Avanzata")
+            st.markdown("### Analisi di *Portafoglio Enore*")
+            st.plotly_chart(crea_tachimetro(tot_gain, "Riepilogo Totale"), use_container_width=True)
+            st.divider()
+            fig_bar = px.bar(
+                df, x='Nome', y='Gain', 
+                color='Gain',
+                color_continuous_scale='RdYlGn', 
+                text_auto='.3f',
+                title="Dettaglio Utile per Singolo Titolo"
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+    if st.sidebar.button("Logout"):
+        st.session_state["p_ok"] = False
+        st.rerun()
