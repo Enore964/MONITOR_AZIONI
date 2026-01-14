@@ -89,14 +89,28 @@ if login():
         tot_gain = df['Gain'].sum()
 
         if scelta == "📋 Lista":
-            colore_titolo = "#28a745" if tot_gain >= 0 else "#dc3545"
+            # Colore dinamico Verde/Rosso
+            color_stat = "#28a745" if tot_gain >= 0 else "#dc3545"
+            
+            # Titolo Portafoglio Enore
             st.markdown(
-                f"<h2 style='text-align: left; font-style: italic; font-size: 26px; white-space: nowrap; color: {colore_titolo};'>Portafoglio Enore</h2>", 
+                f"<h2 style='text-align: left; font-style: italic; font-size: 26px; white-space: nowrap; color: {color_stat};'>Portafoglio Enore</h2>", 
                 unsafe_allow_html=True
             )
             
             st.plotly_chart(crea_tachimetro(tot_gain), use_container_width=True)
-            st.metric("UTILE ATTUALE", f"€ {tot_gain:.3f}")
+            
+            # --- UTILE ATTUALE COLORATO E IN GRASSETTO ---
+            st.markdown(
+                f"""
+                <div style="text-align: center; margin-top: -20px;">
+                    <p style="margin: 0; font-size: 16px; font-weight: bold; color: {color_stat};">UTILE ATTUALE</p>
+                    <p style="margin: 0; font-size: 32px; font-weight: bold; color: {color_stat};">€ {tot_gain:.3f}</p>
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
+            
             st.divider()
 
             for i in data:
@@ -108,7 +122,6 @@ if login():
                 st.markdown(f"<h3 style='margin-bottom:0; color: {text_color}; font-weight: bold;'>{i['Nome']}</h3>", unsafe_allow_html=True)
                 st.markdown(f"🕒 *Aggiornato alle: {i['Ora']}*") 
                 
-                # RIQUADRO CON NUMERI IN GRASSETTO (BOLD)
                 st.markdown(
                     f"""
                     <div style="
