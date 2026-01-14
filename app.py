@@ -45,7 +45,7 @@ if login():
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
                     
-                    # Applichiamo il correttore per allineare il prezzo (es. per l'Uranio)
+                    # Applichiamo il correttore per l'Uranio
                     p_eur = last_p * info["corr"]
                     
                     ora_it = datetime.datetime.now() + timedelta(hours=1)
@@ -71,6 +71,7 @@ if login():
 
     if data:
         if scelta == "📋 Lista":
+            # Titolo in italic
             st.markdown("# *Portafoglio Enore*")
             
             tot_gain = sum(i['Gain'] for i in data)
@@ -84,7 +85,8 @@ if login():
             fig.update_layout(height=300)
             st.plotly_chart(fig, use_container_width=True)
             
-            st.metric("UTILE ATTUALE", f"€ {tot_gain:.2f}")
+            # Utile totale con 3 decimali
+            st.metric("UTILE ATTUALE", f"€ {tot_gain:.3f}")
             st.divider()
 
             for i in data:
@@ -94,17 +96,19 @@ if login():
                 
                 with st.container(border=True):
                     c1, c2 = st.columns(2)
-                    c1.metric("Prezzo", f"€ {i['Prezzo']:.2f}", f"{i['Var']:.2f}%")
-                    c2.metric("Utile", f"€ {i['Gain']:.2f}", f"{i['Perc']:.2f}%")
-                    st.caption(f"Valore: € {i['Val']:.2f} | Investito: € {i['Inv']:.2f}")
+                    # Prezzo e variazioni con 3 decimali
+                    c1.metric("Prezzo", f"€ {i['Prezzo']:.3f}", f"{i['Var']:.3f}%")
+                    c2.metric("Utile", f"€ {i['Gain']:.3f}", f"{i['Perc']:.3f}%")
+                    st.caption(f"Valore: € {i['Val']:.3f} | Investito: € {i['Inv']:.3f}")
 
         elif scelta == "📊 Grafici":
             st.title("📊 Analisi Avanzata")
             st.markdown("### Analisi di *Portafoglio Enore*")
             st.subheader("Utile per Titolo (Euro)")
+            # Grafico a barre con etichette a 3 decimali
             fig_bar = px.bar(
                 data, x='Nome', y='Gain', color='Gain',
-                color_continuous_scale='RdYlGn', text_auto='.2f'
+                color_continuous_scale='RdYlGn', text_auto='.3f'
             )
             st.plotly_chart(fig_bar, use_container_width=True)
 
