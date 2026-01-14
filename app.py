@@ -23,13 +23,13 @@ def login():
     return False
 
 if login():
-    # --- DATI PORTAFOGLIO ---
+    # --- DATI PORTAFOGLIO (ORDINE MODIFICATO) ---
     LISTA_TITOLI = {
-        "GOLD": {"t": "PHAU.MI", "acq": 352.79, "q": 30,   "n": "Oro Fisico", "usa": False}, 
         "URA":  {"t": "URA",     "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": True},  
         "LDO":  {"t": "LDO.MI",  "acq": 59.855, "q": 200,  "n": "Leonardo", "usa": False},  
         "EXA":  {"t": "EXAI.MI", "acq": 1.9317, "q": 3000, "n": "Expert AI", "usa": False},   
-        "AVI":  {"t": "AVIO.MI", "acq": 36.6,   "q": 250,  "n": "Avio Spazio", "usa": False}    
+        "AVI":  {"t": "AVIO.MI", "acq": 36.6,   "q": 250,  "n": "Avio Spazio", "usa": False},
+        "GOLD": {"t": "PHAU.MI", "acq": 352.79, "q": 30,   "n": "Oro Fisico", "usa": False}
     }
 
     st.sidebar.title("📱 Menu")
@@ -48,7 +48,6 @@ if login():
                 h = stock.history(period="5d")
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
-                    # Calcolo ora esatta per ogni titolo
                     ora_it = datetime.datetime.now() + timedelta(hours=1)
                     ora_azione = ora_it.strftime('%H:%M:%S')
                     
@@ -76,7 +75,7 @@ if login():
 
     if data:
         if scelta == "📋 Lista":
-            # Titolo interamente in italic come richiesto
+            # Titolo interamente in italic
             st.markdown("# *Portafoglio Enore*")
             
             tot_gain = sum(i['Gain'] for i in data)
@@ -94,10 +93,10 @@ if login():
             st.metric("UTILE ATTUALE", f"€ {tot_gain:.2f}")
             st.divider()
 
+            # I titoli appariranno nell'ordine: Uranio, Leonardo, Expert AI, Avio, Oro
             for i in data:
                 color = "#28a745" if i['Gain'] >= 0 else "#dc3545"
                 st.markdown(f"<h3 style='margin-bottom:0; color: {color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
-                # Orario specifico per azione
                 st.markdown(f"🕒 *Aggiornato alle: {i['Ora']}*") 
                 
                 with st.container(border=True):
@@ -127,4 +126,3 @@ if login():
     if st.sidebar.button("Logout"):
         st.session_state["p_ok"] = False
         st.rerun()
-
