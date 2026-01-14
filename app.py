@@ -90,10 +90,11 @@ if login():
         tot_gain = df['Gain'].sum()
 
         if scelta == "📋 Lista":
-            # --- TITOLO RIMPICCIOLITO PER CELLULARE ---
+            # --- TITOLO DINAMICO (COLORE IN BASE ALL'UTILE) ---
+            colore_titolo = "#28a745" if tot_gain >= 0 else "#dc3545"
             st.markdown(
-                """
-                <h2 style='text-align: left; font-style: italic; font-size: 26px; white-space: nowrap;'>
+                f"""
+                <h2 style='text-align: left; font-style: italic; font-size: 26px; white-space: nowrap; color: {colore_titolo};'>
                 Portafoglio Enore
                 </h2>
                 """, 
