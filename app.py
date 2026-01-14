@@ -64,35 +64,36 @@ if login():
 
     data = fetch_data()
 
+    def crea_tachimetro(valore, titolo="Utile Totale"):
+        fig = go.Figure(go.Indicator(
+            mode = "gauge+number", 
+            value = valore,
+            number = {'valueformat': '.3f', 'suffix': ' €'},
+            title = {'text': titolo, 'font': {'size': 24}},
+            gauge = {
+                'axis': {'range': [-5000, 5000], 'tickformat': '.0f'},
+                'bar': {'color': "green" if valore >= 0 else "red"},
+                'steps': [
+                    {'range': [-5000, 0], 'color': "#ffe6e6"},
+                    {'range': [0, 5000], 'color': "#e6ffec"}
+                ],
+                'threshold': {
+                    'line': {'color': "black", 'width': 3},
+                    'thickness': 0.8,
+                    'value': valore
+                }
+            }
+        ))
+        fig.update_layout(height=350, margin=dict(t=80, b=20, l=30, r=30))
+        return fig
+
     if data:
         df = pd.DataFrame(data)
         tot_gain = df['Gain'].sum()
 
         if scelta == "📋 Lista":
             st.markdown("# *Portafoglio Enore*")
-            
-            # --- TACHIMETRO SINCRONIZZATO ---
-            fig = go.Figure(go.Indicator(
-                mode = "gauge+number", 
-                value = tot_gain,
-                number = {'valueformat': '.3f', 'suffix': ' €'},
-                gauge = {
-                    'axis': {'range': [-5000, 5000], 'tickformat': '.0f'},
-                    'bar': {'color': "green" if tot_gain >= 0 else "red"},
-                    'steps': [
-                        {'range': [-5000, 0], 'color': "#ffe6e6"},
-                        {'range': [0, 5000], 'color': "#e6ffec"}
-                    ],
-                    'threshold': {
-                        'line': {'color': "black", 'width': 3},
-                        'thickness': 0.8,
-                        'value': tot_gain
-                    }
-                }
-            ))
-            fig.update_layout(height=350, margin=dict(t=50, b=20))
-            st.plotly_chart(fig, use_container_width=True)
-            
+            st.plotly_chart(crea_tachimetro(tot_gain), use_container_width=True)
             st.metric("UTILE ATTUALE", f"€ {tot_gain:.3f}")
             st.divider()
 
@@ -110,24 +111,19 @@ if login():
             st.title("📊 Analisi Avanzata")
             st.markdown("### Analisi di *Portafoglio Enore*")
             
-            # Creazione dataset per il grafico con riga totale
-            df_grafico = df[['Nome', 'Gain']].copy()
-            df_totale = pd.DataFrame([{"Nome": "TOTALONE", "Gain": tot_gain}])
-            df_finale = pd.concat([df_grafico, df_totale], ignore_index=True)
+            # Tachimetro aggiunto anche nella sezione grafici
+            st.plotly_chart(crea_tachimetro(tot_gain, "Riepilogo Totale"), use_container_width=True)
             
-            st.subheader(f"Utile Complessivo: € {tot_gain:.3f}")
+            st.divider()
             
-            # --- GRAFICO A BARRE CON TOTALE ---
+            # Grafico a barre solo per i singoli titoli
             fig_bar = px.bar(
-                df_finale, x='Nome', y='Gain', 
+                df, x='Nome', y='Gain', 
                 color='Gain',
                 color_continuous_scale='RdYlGn', 
                 text_auto='.3f',
-                title="Dettaglio Utile e Totale Portafoglio"
+                title="Dettaglio Utile per Singolo Titolo"
             )
-            # Evidenziamo visivamente la barra del totale
-            fig_bar.update_traces(marker_line_width=2, marker_line_color="black", selector=dict(name="TOTALONE"))
-            
             st.plotly_chart(fig_bar, use_container_width=True)
 
     if st.sidebar.button("Logout"):
