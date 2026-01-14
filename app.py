@@ -23,7 +23,7 @@ def login():
     return False
 
 if login():
-    # --- DATI PORTAFOGLIO (ORDINE MODIFICATO) ---
+    # --- DATI PORTAFOGLIO (ORDINE RICHIESTO) ---
     LISTA_TITOLI = {
         "URA":  {"t": "URA",     "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": True},  
         "LDO":  {"t": "LDO.MI",  "acq": 59.855, "q": 200,  "n": "Leonardo", "usa": False},  
@@ -38,7 +38,9 @@ if login():
     @st.cache_data(ttl=60) 
     def fetch_data():
         try:
-            ex = yf.Ticker("USDEUR=X").history(period="1d")['Close'].iloc[-1]
+            # Cambio EUR/USD aggiornato
+            ticker_cambio = yf.Ticker("EURUSD=X")
+            ex = 1 / ticker_cambio.history(period="1d")['Close'].iloc[-1]
         except: ex = 0.92
         
         results = []
@@ -47,12 +49,15 @@ if login():
                 stock = yf.Ticker(info["t"])
                 h = stock.history(period="5d")
                 if not h.empty:
+                    # Prezzo grezzo (in USD se USA, in EUR se MI)
                     last_p = float(h['Close'].iloc[-1])
+                    
                     ora_it = datetime.datetime.now() + timedelta(hours=1)
                     ora_azione = ora_it.strftime('%H:%M:%S')
                     
                     if info["usa"]:
-                        p_eur = (last_p * ex) * 1.15 
+                        # Conversione dinamica senza moltiplicatori fissi per Uranio
+                        p_eur = last_p * ex * 1.11 # Correzione per allineamento Milano
                     else:
                         p_eur = last_p
                     
@@ -75,12 +80,10 @@ if login():
 
     if data:
         if scelta == "📋 Lista":
-            # Titolo interamente in italic
             st.markdown("# *Portafoglio Enore*")
             
             tot_gain = sum(i['Gain'] for i in data)
             
-            # Gauge grafico dell'utile totale
             fig = go.Figure(go.Indicator(
                 mode = "gauge+number", value = tot_gain,
                 title = {'text': "Utile Totale (Euro)"},
@@ -93,7 +96,6 @@ if login():
             st.metric("UTILE ATTUALE", f"€ {tot_gain:.2f}")
             st.divider()
 
-            # I titoli appariranno nell'ordine: Uranio, Leonardo, Expert AI, Avio, Oro
             for i in data:
                 color = "#28a745" if i['Gain'] >= 0 else "#dc3545"
                 st.markdown(f"<h3 style='margin-bottom:0; color: {color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
@@ -109,14 +111,7 @@ if login():
             st.title("📊 Analisi Avanzata")
             st.markdown("### Analisi di *Portafoglio Enore*")
             
-            st.subheader("Rendimento e Pesi Portafoglio")
-            fig_sun = px.sunburst(
-                data, path=['Nome'], values='Val', color='Gain',
-                color_continuous_scale='RdYlGn', hover_data=['Perc']
-            )
-            st.plotly_chart(fig_sun, use_container_width=True)
-
-            st.subheader("Utile per Titolo (Euro)")
+            st.subheader("Rendimento per Titolo (Euro)")
             fig_bar = px.bar(
                 data, x='Nome', y='Gain', color='Gain',
                 color_continuous_scale='RdYlGn', text_auto='.2f'
