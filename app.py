@@ -24,13 +24,12 @@ def login():
 
 if login():
     # --- DATI PORTAFOGLIO ---
-    # Usiamo URAM.MI che è il ticker più affidabile per l'Uranio a Milano
     LISTA_TITOLI = {
-        "URA":  {"t": "URAM.MI",   "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": False},  
-        "LDO":  {"t": "LDO.MI",    "acq": 59.855, "q": 200,  "n": "Leonardo", "usa": False},  
-        "EXA":  {"t": "EXAI.MI",   "acq": 1.9317, "q": 3000, "n": "Expert AI", "usa": False},   
-        "AVI":  {"t": "AVIO.MI",   "acq": 36.6,   "q": 250,  "n": "Avio Spazio", "usa": False},
-        "GOLD": {"t": "PHAU.MI",   "acq": 352.79, "q": 30,   "n": "Oro Fisico", "usa": False}
+        "URA":  {"t": "URAM.MI",   "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "corr": 1.094},  
+        "LDO":  {"t": "LDO.MI",    "acq": 59.855, "q": 200,  "n": "Leonardo",      "corr": 1.0},  
+        "EXA":  {"t": "EXAI.MI",   "acq": 1.9317, "q": 3000, "n": "Expert AI",     "corr": 1.0},   
+        "AVI":  {"t": "AVIO.MI",   "acq": 36.6,   "q": 250,  "n": "Avio Spazio",   "corr": 1.0},
+        "GOLD": {"t": "PHAU.MI",   "acq": 352.79, "q": 30,   "n": "Oro Fisico",    "corr": 1.0}
     }
 
     st.sidebar.title("📱 Menu")
@@ -42,21 +41,21 @@ if login():
         for k, info in LISTA_TITOLI.items():
             try:
                 stock = yf.Ticker(info["t"])
-                # Chiediamo un periodo più lungo per essere sicuri di avere i dati
-                h = stock.history(period="1mo") 
+                h = stock.history(period="5d") 
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
+                    
+                    # Applichiamo il correttore per allineare il prezzo (es. per l'Uranio)
+                    p_eur = last_p * info["corr"]
                     
                     ora_it = datetime.datetime.now() + timedelta(hours=1)
                     ora_azione = ora_it.strftime('%H:%M:%S')
                     
-                    p_eur = last_p
-                    
                     inv = info["acq"] * info["q"]
                     val = p_eur * info["q"]
                     gain = val - inv
-                    prec = h['Close'].iloc[-2]
-                    var = ((last_p - prec) / prec) * 100
+                    prec = h['Close'].iloc[-2] * info["corr"]
+                    var = ((p_eur - prec) / prec) * 100
                     
                     results.append({
                         "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
@@ -64,7 +63,7 @@ if login():
                         "Perc": (gain / inv * 100), "Ora": ora_azione
                     })
                 time.sleep(0.2)
-            except Exception as e:
+            except:
                 continue
         return results
 
@@ -102,7 +101,6 @@ if login():
         elif scelta == "📊 Grafici":
             st.title("📊 Analisi Avanzata")
             st.markdown("### Analisi di *Portafoglio Enore*")
-            
             st.subheader("Utile per Titolo (Euro)")
             fig_bar = px.bar(
                 data, x='Nome', y='Gain', color='Gain',
