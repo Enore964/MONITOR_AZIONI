@@ -70,10 +70,11 @@ if login():
             except: continue
         return results
 
-    def crea_tachimetro(valore):
+    def crea_tachimetro(valore, titolo="Utile Totale"):
         fig = go.Figure(go.Indicator(
             mode = "gauge+number", value = valore,
             number = {'valueformat': '.3f', 'suffix': ' €', 'font': {'size': 30, 'weight': 'bold'}},
+            title = {'text': titolo, 'font': {'size': 24}},
             gauge = {
                 'axis': {'range': [-5000, 5000], 'tickformat': '.0f'},
                 'bar': {'color': "green" if valore >= 0 else "red"},
@@ -81,8 +82,7 @@ if login():
                 'threshold': {'line': {'color': "black", 'width': 3}, 'thickness': 0.8, 'value': valore}
             }
         ))
-        # Altezza ridotta e margini azzerati per non tagliare il testo
-        fig.update_layout(height=280, margin=dict(t=0, b=0, l=30, r=30))
+        fig.update_layout(height=350, margin=dict(t=80, b=20, l=30, r=30))
         return fig
 
     def crea_sparkline(dati, colore):
@@ -99,27 +99,16 @@ if login():
     if data:
         df = pd.DataFrame(data)
         tot_gain = df['Gain'].sum()
-        media_perc = df['Perc'].mean()
+        media_perc = df['Perc'].mean() # Calcolo della media dei rendimenti
 
         if scelta == "📋 Lista":
             color_stat = "#28a745" if tot_gain >= 0 else "#dc3545"
-            
-            # TITOLO POSIZIONATO SENZA MARGINI NEGATIVI RISCHIOSI
-            st.markdown(f"""
-                <div style='text-align: left; margin-top: 10px; margin-bottom: 0px;'>
-                    <h2 style='font-style: italic; font-size: 26px; color: {color_stat}; margin: 0;'>
-                        Portafoglio Enore
-                    </h2>
-                    <p style='font-size: 14px; color: gray; margin: 0;'>Utile Totale</p>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            # TACHIMETRO (Senza titolo interno per guadagnare spazio)
+            st.markdown(f"<h2 style='font-style: italic; font-size: 26px; white-space: nowrap; color: {color_stat};'>Portafoglio Enore</h2>", unsafe_allow_html=True)
             st.plotly_chart(crea_tachimetro(tot_gain), use_container_width=True)
             
-            # BLOCCO UTILE + MEDIA
+            # --- BLOCCO UTILE + MEDIA RENDIMENTO ---
             st.markdown(f"""
-                <div style='text-align: center; margin-top: -10px;'>
+                <div style='text-align: center; margin-top: -20px;'>
                     <p style='margin:0; font-size: 16px; font-weight: bold; color: {color_stat};'>UTILE ATTUALE</p>
                     <p style='margin:0; font-size: 32px; font-weight: bold; color: {color_stat};'>€ {tot_gain:.3f}</p>
                     <p style='margin:0; font-size: 14px; color: gray;'>Media Rendimento Totale</p>
@@ -153,11 +142,12 @@ if login():
         elif scelta == "📊 Grafici":
             color_stat = "#28a745" if tot_gain >= 0 else "#dc3545"
             st.title("📊 Analisi Avanzata")
-            st.plotly_chart(crea_tachimetro(tot_gain), use_container_width=True)
+            st.plotly_chart(crea_tachimetro(tot_gain, "Riepilogo Totale"), use_container_width=True)
             
+            # --- AGGIUNTO ANCHE NEI GRAFICI ---
             st.markdown(f"""
-                <div style='text-align: center; margin-top: 0px; margin-bottom: 20px;'>
-                    <p style='margin:0; font-size: 18px; font-weight: bold; color: {color_stat};'>UTILE ATTUALE: € {tot_gain:.3f}</p>
+                <div style='text-align: center; margin-top: -20px; margin-bottom: 20px;'>
+                    <p style='margin:0; font-size: 16px; font-weight: bold; color: {color_stat};'>UTILE ATTUALE: € {tot_gain:.3f}</p>
                     <p style='margin:0; font-size: 18px; font-weight: bold; color: {color_stat};'>MEDIA RENDIMENTO: {media_perc:.3f}%</p>
                 </div>
                 """, unsafe_allow_html=True)
