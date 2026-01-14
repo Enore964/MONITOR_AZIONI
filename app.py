@@ -36,7 +36,8 @@ if login():
     st.sidebar.title("📱 Menu")
     scelta = st.sidebar.radio("Vai a:", ["📋 Lista", "📊 Grafici"])
 
-    @st.cache_data(ttl=60) 
+    # --- AGGIORNATO A 30 SECONDI ---
+    @st.cache_data(ttl=30) 
     def fetch_data():
         results = []
         for k, info in LISTA_TITOLI.items():
@@ -62,7 +63,6 @@ if login():
             except: continue
         return results
 
-    # --- FUNZIONE TACHIMETRO CON SEMICERCHIO GIALLO ---
     def crea_tachimetro(valore, titolo="Utile Totale"):
         fig = go.Figure(go.Indicator(
             mode = "gauge+number", 
@@ -72,7 +72,7 @@ if login():
             gauge = {
                 'axis': {'range': [-5000, 5000], 'tickformat': '.0f'},
                 'bar': {'color': "green" if valore >= 0 else "red"},
-                'bgcolor': "yellow", # SFONDO DEL SEMICERCHIO GIALLO
+                'bgcolor': "yellow", 
                 'threshold': {
                     'line': {'color': "black", 'width': 3},
                     'thickness': 0.8,
@@ -80,10 +80,7 @@ if login():
                 }
             }
         ))
-        fig.update_layout(
-            height=350, 
-            margin=dict(t=80, b=20, l=30, r=30)
-        )
+        fig.update_layout(height=350, margin=dict(t=80, b=20, l=30, r=30))
         return fig
 
     data = fetch_data()
