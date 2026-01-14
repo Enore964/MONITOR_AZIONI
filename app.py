@@ -44,48 +44,50 @@ if login():
                 h = stock.history(period="5d") 
                 if not h.empty:
                     last_p = float(h['Close'].iloc[-1])
-                    
-                    # Applichiamo il correttore per l'Uranio
                     p_eur = last_p * info["corr"]
-                    
                     ora_it = datetime.datetime.now() + timedelta(hours=1)
                     ora_azione = ora_it.strftime('%H:%M:%S')
-                    
                     inv = info["acq"] * info["q"]
                     val = p_eur * info["q"]
                     gain = val - inv
                     prec = h['Close'].iloc[-2] * info["corr"]
                     var = ((p_eur - prec) / prec) * 100
-                    
                     results.append({
                         "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
                         "Val": val, "Gain": gain, "Var": var,
                         "Perc": (gain / inv * 100), "Ora": ora_azione
                     })
                 time.sleep(0.2)
-            except:
-                continue
+            except: continue
         return results
 
     data = fetch_data()
 
     if data:
+        tot_gain = sum(i['Gain'] for i in data)
+
         if scelta == "📋 Lista":
-            # Titolo in italic
             st.markdown("# *Portafoglio Enore*")
             
-            tot_gain = sum(i['Gain'] for i in data)
-            
+            # --- CORREZIONE TACHIMETRO ---
             fig = go.Figure(go.Indicator(
-                mode = "gauge+number", value = tot_gain,
-                title = {'text': "Utile Totale (Euro)"},
-                gauge = {'axis': {'range': [-5000, 5000]},
-                         'bar': {'color': "green" if tot_gain >= 0 else "red"}}
+                mode = "gauge+number", 
+                value = tot_gain,
+                number = {'valueformat': '.3f', 'suffix': ' €'},
+                title = {'text': "Utile Totale"},
+                gauge = {
+                    'axis': {'range': [-5000, 5000], 'tickformat': '.0f'},
+                    'bar': {'color': "green" if tot_gain >= 0 else "red"},
+                    'threshold': {
+                        'line': {'color': "white", 'width': 2},
+                        'thickness': 0.75,
+                        'value': tot_gain
+                    }
+                }
             ))
-            fig.update_layout(height=300)
+            fig.update_layout(height=350)
             st.plotly_chart(fig, use_container_width=True)
             
-            # Utile totale con 3 decimali
             st.metric("UTILE ATTUALE", f"€ {tot_gain:.3f}")
             st.divider()
 
@@ -93,10 +95,8 @@ if login():
                 color = "#28a745" if i['Gain'] >= 0 else "#dc3545"
                 st.markdown(f"<h3 style='margin-bottom:0; color: {color};'>{i['Nome']}</h3>", unsafe_allow_html=True)
                 st.markdown(f"🕒 *Aggiornato alle: {i['Ora']}*") 
-                
                 with st.container(border=True):
                     c1, c2 = st.columns(2)
-                    # Prezzo e variazioni con 3 decimali
                     c1.metric("Prezzo", f"€ {i['Prezzo']:.3f}", f"{i['Var']:.3f}%")
                     c2.metric("Utile", f"€ {i['Gain']:.3f}", f"{i['Perc']:.3f}%")
                     st.caption(f"Valore: € {i['Val']:.3f} | Investito: € {i['Inv']:.3f}")
@@ -104,11 +104,14 @@ if login():
         elif scelta == "📊 Grafici":
             st.title("📊 Analisi Avanzata")
             st.markdown("### Analisi di *Portafoglio Enore*")
-            st.subheader("Utile per Titolo (Euro)")
-            # Grafico a barre con etichette a 3 decimali
+            
+            # --- AGGIUNTA TOTALE UTILI NEI GRAFICI ---
+            st.subheader(f"Utile Complessivo: € {tot_gain:.3f}")
+            
             fig_bar = px.bar(
                 data, x='Nome', y='Gain', color='Gain',
-                color_continuous_scale='RdYlGn', text_auto='.3f'
+                color_continuous_scale='RdYlGn', text_auto='.3f',
+                title="Dettaglio Utile per Titolo (Euro)"
             )
             st.plotly_chart(fig_bar, use_container_width=True)
 
