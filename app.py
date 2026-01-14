@@ -23,13 +23,13 @@ def login():
     return False
 
 if login():
-    # --- DATI PORTAFOGLIO (ORDINE RICHIESTO) ---
+    # --- DATI PORTAFOGLIO (ORDINE E TICKER MILANO AGGIORNATI) ---
     LISTA_TITOLI = {
-        "URA":  {"t": "URA",     "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": True},  
-        "LDO":  {"t": "LDO.MI",  "acq": 59.855, "q": 200,  "n": "Leonardo", "usa": False},  
-        "EXA":  {"t": "EXAI.MI", "acq": 1.9317, "q": 3000, "n": "Expert AI", "usa": False},   
-        "AVI":  {"t": "AVIO.MI", "acq": 36.6,   "q": 250,  "n": "Avio Spazio", "usa": False},
-        "GOLD": {"t": "PHAU.MI", "acq": 352.79, "q": 30,   "n": "Oro Fisico", "usa": False}
+        "URA":  {"t": "U92.MI",    "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "usa": False},  
+        "LDO":  {"t": "LDO.MI",    "acq": 59.855, "q": 200,  "n": "Leonardo", "usa": False},  
+        "EXA":  {"t": "EXAI.MI",   "acq": 1.9317, "q": 3000, "n": "Expert AI", "usa": False},   
+        "AVI":  {"t": "AVIO.MI",   "acq": 36.6,   "q": 250,  "n": "Avio Spazio", "usa": False},
+        "GOLD": {"t": "PHAU.MI",   "acq": 352.79, "q": 30,   "n": "Oro Fisico", "usa": False}
     }
 
     st.sidebar.title("📱 Menu")
@@ -37,29 +37,20 @@ if login():
 
     @st.cache_data(ttl=60) 
     def fetch_data():
-        try:
-            # Cambio EUR/USD aggiornato
-            ticker_cambio = yf.Ticker("EURUSD=X")
-            ex = 1 / ticker_cambio.history(period="1d")['Close'].iloc[-1]
-        except: ex = 0.92
-        
         results = []
         for k, info in LISTA_TITOLI.items():
             try:
                 stock = yf.Ticker(info["t"])
                 h = stock.history(period="5d")
                 if not h.empty:
-                    # Prezzo grezzo (in USD se USA, in EUR se MI)
                     last_p = float(h['Close'].iloc[-1])
                     
+                    # Orario locale aggiornato
                     ora_it = datetime.datetime.now() + timedelta(hours=1)
                     ora_azione = ora_it.strftime('%H:%M:%S')
                     
-                    if info["usa"]:
-                        # Conversione dinamica senza moltiplicatori fissi per Uranio
-                        p_eur = last_p * ex * 1.11 # Correzione per allineamento Milano
-                    else:
-                        p_eur = last_p
+                    # Ora tutti i titoli sono su Milano (.MI), non serve più conversione USD
+                    p_eur = last_p
                     
                     inv = info["acq"] * info["q"]
                     val = p_eur * info["q"]
@@ -80,6 +71,7 @@ if login():
 
     if data:
         if scelta == "📋 Lista":
+            # Titolo in italic come richiesto
             st.markdown("# *Portafoglio Enore*")
             
             tot_gain = sum(i['Gain'] for i in data)
@@ -111,7 +103,7 @@ if login():
             st.title("📊 Analisi Avanzata")
             st.markdown("### Analisi di *Portafoglio Enore*")
             
-            st.subheader("Rendimento per Titolo (Euro)")
+            st.subheader("Utile per Titolo (Euro)")
             fig_bar = px.bar(
                 data, x='Nome', y='Gain', color='Gain',
                 color_continuous_scale='RdYlGn', text_auto='.2f'
