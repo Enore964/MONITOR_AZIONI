@@ -26,10 +26,10 @@ def login():
 if login():
     # --- DATI PORTAFOGLIO ---
     LISTA_TITOLI = {
-        "URA":  {"t": "URAM.MI",   "acq": 54,07,  "q": 200,  "n": "Uranio Milano", "corr": 1.094},  
+        "URA":  {"t": "URAM.MI",   "acq": 54.07,  "q": 200,  "n": "Uranio Milano", "corr": 1.094},  
         "LDO":  {"t": "LDO.MI",    "acq": 59.855, "q": 200,  "n": "Leonardo",      "corr": 1.0},  
         "EXA":  {"t": "EXAI.MI",   "acq": 1.9317, "q": 3000, "n": "Expert AI",     "corr": 1.0},   
-        "AVI":  {"t": "AVIO.MI",   "acq": 39,1,   "q": 300,  "n": "Avio Spazio",   "corr": 1.0},
+        "AVI":  {"t": "AVIO.MI",   "acq": 39.1,   "q": 300,  "n": "Avio Spazio",   "corr": 1.0},
         "GOLD": {"t": "PHAU.MI",   "acq": 352.79, "q": 30,   "n": "Oro Fisico",    "corr": 1.0}
     }
 
@@ -159,5 +159,6 @@ if login():
     if st.sidebar.button("Logout"):
         st.session_state["p_ok"] = False
         st.rerun()
+
 
 
