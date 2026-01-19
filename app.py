@@ -26,10 +26,10 @@ def login():
 if login():
     # --- DATI PORTAFOGLIO ---
     LISTA_TITOLI = {
-        "URA":  {"t": "URAM.MI",   "acq": 54.07,  "q": 200,  "n": "Uranio Milano", "corr": 1.094},  
+        "URA":  {"t": "URAM.MI",   "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "corr": 1.094},  
         "LDO":  {"t": "LDO.MI",    "acq": 59.855, "q": 200,  "n": "Leonardo",      "corr": 1.0},  
         "EXA":  {"t": "EXAI.MI",   "acq": 1.9317, "q": 3000, "n": "Expert AI",     "corr": 1.0},   
-        "AVI":  {"t": "AVIO.MI",   "acq": 39.1,   "q": 250,  "n": "Avio Spazio",   "corr": 1.0},
+        "AVI":  {"t": "AVIO.MI",   "acq": 36.6,   "q": 250,  "n": "Avio Spazio",   "corr": 1.0},
         "GOLD": {"t": "PHAU.MI",   "acq": 352.79, "q": 30,   "n": "Oro Fisico",    "corr": 1.0}
     }
 
@@ -64,7 +64,7 @@ if login():
                         "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
                         "Val": val, "Gain": gain, "Var": var,
                         "Perc": (gain / inv * 100), "Ora": ora_azione,
-                        "Storia": prezzi_storia, "Quantita": info["q"] # Salviamo la quantità
+                        "Storia": prezzi_storia, "Quantita": info["q"]
                     })
                 time.sleep(0.2)
             except: continue
@@ -103,14 +103,7 @@ if login():
         if scelta == "📋 Lista":
             color_stat = "#28a745" if tot_gain >= 0 else "#dc3545"
             
-            st.markdown(f"""
-                <div style='text-align: left; margin-top: 10px; margin-bottom: 0px;'>
-                    <h2 style='font-style: italic; font-size: 26px; color: {color_stat}; margin: 0;'>
-                        Portafoglio Enore
-                    </h2>
-                    <p style='font-size: 14px; color: gray; margin: 0;'>Utile Totale</p>
-                </div>
-                """, unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align: left; margin-top: 10px;'><h2 style='font-style: italic; font-size: 26px; color: {color_stat}; margin: 0;'>Portafoglio Enore</h2><p style='font-size: 14px; color: gray; margin: 0;'>Utile Totale</p></div>", unsafe_allow_html=True)
             
             st.plotly_chart(crea_tachimetro(tot_gain), use_container_width=True)
             
@@ -130,6 +123,52 @@ if login():
                 else:
                     bg_color = "#ffeaea"; border_color = "#dc3545"; text_color = "#dc3545"
 
-                st.markdown(f"<h3 style='margin-bottom:
+                st.markdown(f"<h3 style='margin-bottom:0; color: {text_color}; font-weight: bold;'>{i['Nome']}</h3>", unsafe_allow_html=True)
+                st.markdown(f"🕒 *Aggiornato alle: {i['Ora']}*") 
+                
+                with st.container():
+                    st.markdown(f"""
+                        <div style="background-color: {bg_color}; border: 2px solid {border_color}; padding: 15px; border-radius: 10px; margin-bottom: 5px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <div>
+                                    <p style="margin:0; font-size: 14px; color: black;">Prezzo</p>
+                                    <p style="margin:0; font-size: 20px; font-weight: bold; color: {text_color};">€ {i['Prezzo']:.3f} <span style="font-size: 14px;">({i['Var']:.3f}%)</span></p>
+                                </div>
+                                <div style="text-align: right;">
+                                    <p style="margin:0; font-size: 14px; color: black;">Utile</p>
+                                    <p style="margin:0; font-size: 20px; font-weight: bold; color: {text_color};">€ {i['Gain']:.3f} <span style="font-size: 14px;">({i['Perc']:.3f}%)</span></p>
+                                </div>
+                            </div>
+                        </div>""", unsafe_allow_html=True)
+                    
+                    st.plotly_chart(crea_sparkline(i['Storia'], text_color), use_container_width=True, config={'displayModeBar': False})
+                    
+                    st.markdown(f"""
+                        <div style="background-color: {bg_color}; border: 1px solid {border_color}; padding: 10px; border-radius: 5px; margin-top: -15px;">
+                            <p style="margin: 0; font-size: 12px; color: #444; font-weight: bold;">
+                                Azioni: {i['Quantita']} | Valore: € {i['Val']:.3f} | Inv: € {i['Inv']:.3f}
+                            </p>
+                        </div><br>""", unsafe_allow_html=True)
+
+        elif scelta == "📊 Grafici":
+            color_stat = "#28a745" if tot_gain >= 0 else "#dc3545"
+            st.title("📊 Analisi Avanzata")
+            st.plotly_chart(crea_tachimetro(tot_gain), use_container_width=True)
+            
+            st.markdown(f"""
+                <div style='text-align: center; margin-top: 0px; margin-bottom: 20px;'>
+                    <p style='margin:0; font-size: 18px; font-weight: bold; color: {color_stat};'>UTILE ATTUALE: € {tot_gain:.3f}</p>
+                    <p style='margin:0; font-size: 18px; font-weight: bold; color: {color_stat};'>MEDIA RENDIMENTO: {media_perc:.3f}%</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.divider()
+            fig_bar = px.bar(df, x='Nome', y='Gain', color='Gain', color_continuous_scale='RdYlGn', text_auto='.3f')
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+    if st.sidebar.button("Logout"):
+        st.session_state["p_ok"] = False
+        st.rerun()
+
 
 
