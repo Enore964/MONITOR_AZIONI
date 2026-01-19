@@ -174,4 +174,5 @@ html_content = """
 </html>
 """
 
-
+# Rendering dell'app nel componente Streamlit
+components.html(html_content, height=1500, scrolling=True)
