@@ -1,178 +1,172 @@
 import streamlit as st
-import streamlit.components.v1 as components
+import yfinance as yf
+import plotly.graph_objects as go
+import plotly.express as px
+import time
+import datetime
+from datetime import timedelta
+import pandas as pd
 
-# Configurazione pagina Streamlit
-st.set_page_config(layout="wide", page_title="BITMILANO AI")
+# --- ACCESSO ---
+CHIAVE_SITO = "1"
 
-# Definizione del codice HTML/CSS/JS come stringa Python
-# L'uso delle triple virgolette previene errori di interpretazione dei selettori CSS
-html_content = """
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analizzatore ISIN - Borsa Milano</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; }
-        .card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
-        .signal-compra { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-        .signal-vendi { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
-        .signal-mantieni { background-color: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #000;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-</head>
-<body class="bg-neutral-50 min-h-screen">
+def login():
+    if "p_ok" not in st.session_state:
+        st.session_state["p_ok"] = False
+    if st.session_state["p_ok"]: return True
+    st.title("🔒 Area Riservata")
+    cod = st.text_input("Codice:", type="password")
+    if st.button("Entra"):
+        if cod == CHIAVE_SITO:
+            st.session_state["p_ok"] = True
+            st.rerun()
+        else: st.error("❌ Errato")
+    return False
 
-    <!-- Navbar -->
-    <nav class="bg-white border-b px-6 py-4 sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="bg-black text-white p-1.5 rounded">
-                    <i class="fas fa-landmark text-sm"></i>
-                </div>
-                <h1 class="text-lg font-black tracking-tight">BIT<span class="text-blue-600">MILANO</span> AI</h1>
-            </div>
-            <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Quotazioni in Euro (€)</span>
-        </div>
-    </nav>
+if login():
+    # --- DATI PORTAFOGLIO ---
+    LISTA_TITOLI = {
+        "URA":  {"t": "URAM.MI",   "acq": 48.68,  "q": 200,  "n": "Uranio Milano", "corr": 1.094},  
+        "LDO":  {"t": "LDO.MI",    "acq": 59.855, "q": 200,  "n": "Leonardo",      "corr": 1.0},  
+        "EXA":  {"t": "EXAI.MI",   "acq": 1.9317, "q": 3000, "n": "Expert AI",     "corr": 1.0},   
+        "AVI":  {"t": "AVIO.MI",   "acq": 36.6,   "q": 250,  "n": "Avio Spazio",   "corr": 1.0},
+        "GOLD": {"t": "PHAU.MI",   "acq": 352.79, "q": 30,   "n": "Oro Fisico",    "corr": 1.0}
+    }
 
-    <main class="max-w-6xl mx-auto px-4 py-8">
-        
-        <!-- Input Portafoglio -->
-        <div class="bg-white rounded-3xl p-8 card-shadow mb-10 border border-neutral-100">
-            <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-6">
-                <div class="w-full">
-                    <h2 class="text-2xl font-bold text-neutral-900 mb-2">Monitoraggio Asset</h2>
-                    <p class="text-sm text-neutral-500">Gestisci i tuoi titoli su Borsa Italiana</p>
-                </div>
-                <button onclick="analyzeAll()" id="btnAnalyze" class="w-full md:w-auto bg-black hover:bg-neutral-800 text-white font-bold py-4 px-10 rounded-2xl transition-all flex justify-center items-center gap-3">
-                    <i class="fas fa-bolt" id="syncIcon"></i> AGGIORNA DATI
-                </button>
-            </div>
+    st.sidebar.title("📱 Menu")
+    scelta = st.sidebar.radio("Vai a:", ["📋 Lista", "📊 Grafici"])
+
+    @st.cache_data(ttl=30) 
+    def fetch_data():
+        results = []
+        for k, info in LISTA_TITOLI.items():
+            try:
+                stock = yf.Ticker(info["t"])
+                h = stock.history(period="1d", interval="5m") 
+                if h.empty: h = stock.history(period="5d")
+                
+                if not h.empty:
+                    last_p = float(h['Close'].iloc[-1])
+                    p_eur = last_p * info["corr"]
+                    prezzi_storia = (h['Close'] * info["corr"]).tolist()
+                    
+                    ora_it = datetime.datetime.now() + timedelta(hours=1)
+                    ora_azione = ora_it.strftime('%H:%M:%S')
+                    inv = info["acq"] * info["q"]
+                    val = p_eur * info["q"]
+                    gain = val - inv
+                    
+                    h_prec = stock.history(period="5d")
+                    prec_close = h_prec['Close'].iloc[-2] * info["corr"]
+                    var = ((p_eur - prec_close) / prec_close) * 100
+                    
+                    results.append({
+                        "Nome": info["n"], "Prezzo": p_eur, "Inv": inv,
+                        "Val": val, "Gain": gain, "Var": var,
+                        "Perc": (gain / inv * 100), "Ora": ora_azione,
+                        "Storia": prezzi_storia
+                    })
+                time.sleep(0.2)
+            except: continue
+        return results
+
+    def crea_tachimetro(valore):
+        fig = go.Figure(go.Indicator(
+            mode = "gauge+number", value = valore,
+            number = {'valueformat': '.3f', 'suffix': ' €', 'font': {'size': 30, 'weight': 'bold'}},
+            gauge = {
+                'axis': {'range': [-5000, 5000], 'tickformat': '.0f'},
+                'bar': {'color': "green" if valore >= 0 else "red"},
+                'bgcolor': "#F5F5DC", 
+                'threshold': {'line': {'color': "black", 'width': 3}, 'thickness': 0.8, 'value': valore}
+            }
+        ))
+        # Altezza ridotta e margini azzerati per non tagliare il testo
+        fig.update_layout(height=280, margin=dict(t=0, b=0, l=30, r=30))
+        return fig
+
+    def crea_sparkline(dati, colore):
+        fig = go.Figure(data=go.Scatter(y=dati, mode='lines', line=dict(color=colore, width=3)))
+        fig.update_layout(
+            height=60, margin=dict(l=0, r=0, t=0, b=0),
+            xaxis=dict(visible=False), yaxis=dict(visible=False),
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+        )
+        return fig
+
+    data = fetch_data()
+
+    if data:
+        df = pd.DataFrame(data)
+        tot_gain = df['Gain'].sum()
+        media_perc = df['Perc'].mean()
+
+        if scelta == "📋 Lista":
+            color_stat = "#28a745" if tot_gain >= 0 else "#dc3545"
             
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-3">
-                    <label class="text-[11px] font-bold text-neutral-400 uppercase ml-1">Asset 1</label>
-                    <input type="text" id="isin1" value="JE00B1VS3770" placeholder="ISIN" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl outline-none font-mono text-sm">
-                    <input type="number" id="qty1" value="10" placeholder="Quantità" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl outline-none text-sm">
+            # TITOLO POSIZIONATO SENZA MARGINI NEGATIVI RISCHIOSI
+            st.markdown(f"""
+                <div style='text-align: left; margin-top: 10px; margin-bottom: 0px;'>
+                    <h2 style='font-style: italic; font-size: 26px; color: {color_stat}; margin: 0;'>
+                        Portafoglio Enore
+                    </h2>
+                    <p style='font-size: 14px; color: gray; margin: 0;'>Utile Totale</p>
                 </div>
-                <div class="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-3">
-                    <label class="text-[11px] font-bold text-neutral-400 uppercase ml-1">Asset 2</label>
-                    <input type="text" id="isin2" value="JE00B1VS3333" placeholder="ISIN" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl outline-none font-mono text-sm">
-                    <input type="number" id="qty2" value="5" placeholder="Quantità" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl outline-none text-sm">
+                """, unsafe_allow_html=True)
+            
+            # TACHIMETRO (Senza titolo interno per guadagnare spazio)
+            st.plotly_chart(crea_tachimetro(tot_gain), use_container_width=True)
+            
+            # BLOCCO UTILE + MEDIA
+            st.markdown(f"""
+                <div style='text-align: center; margin-top: -10px;'>
+                    <p style='margin:0; font-size: 16px; font-weight: bold; color: {color_stat};'>UTILE ATTUALE</p>
+                    <p style='margin:0; font-size: 32px; font-weight: bold; color: {color_stat};'>€ {tot_gain:.3f}</p>
+                    <p style='margin:0; font-size: 14px; color: gray;'>Media Rendimento Totale</p>
+                    <p style='margin:0; font-size: 20px; font-weight: bold; color: {color_stat};'>{media_perc:.3f}%</p>
                 </div>
-                <div class="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-3">
-                    <label class="text-[11px] font-bold text-neutral-400 uppercase ml-1">Asset 3</label>
-                    <input type="text" id="isin3" value="" placeholder="ISIN" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl outline-none font-mono text-sm">
-                    <input type="number" id="qty3" value="" placeholder="Quantità" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl outline-none text-sm">
+                """, unsafe_allow_html=True)
+            st.divider()
+
+            for i in data:
+                if i['Gain'] >= 0:
+                    bg_color = "#eaffea"; border_color = "#28a745"; text_color = "#28a745"
+                else:
+                    bg_color = "#ffeaea"; border_color = "#dc3545"; text_color = "#dc3545"
+
+                st.markdown(f"<h3 style='margin-bottom:0; color: {text_color}; font-weight: bold;'>{i['Nome']}</h3>", unsafe_allow_html=True)
+                st.markdown(f"🕒 *Aggiornato alle: {i['Ora']}*") 
+                
+                with st.container():
+                    st.markdown(f"""<div style="background-color: {bg_color}; border: 2px solid {border_color}; padding: 15px; border-radius: 10px; margin-bottom: 5px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <div><p style="margin:0; font-size: 14px; color: black;">Prezzo</p>
+                                 <p style="margin:0; font-size: 20px; font-weight: bold; color: {text_color};">€ {i['Prezzo']:.3f} <span style="font-size: 14px;">({i['Var']:.3f}%)</span></p></div>
+                            <div style="text-align: right;"><p style="margin:0; font-size: 14px; color: black;">Utile</p>
+                                 <p style="margin:0; font-size: 20px; font-weight: bold; color: {text_color};">€ {i['Gain']:.3f} <span style="font-size: 14px;">({i['Perc']:.3f}%)</span></p></div>
+                        </div></div>""", unsafe_allow_html=True)
+                    st.plotly_chart(crea_sparkline(i['Storia'], text_color), use_container_width=True, config={'displayModeBar': False})
+                    st.markdown(f"""<div style="background-color: {bg_color}; border: 1px solid {border_color}; padding: 10px; border-radius: 5px; margin-top: -15px;">
+                        <p style="margin: 0; font-size: 12px; color: #444; font-weight: bold;">Valore: € {i['Val']:.3f} | Investito: € {i['Inv']:.3f}</p>
+                    </div><br>""", unsafe_allow_html=True)
+
+        elif scelta == "📊 Grafici":
+            color_stat = "#28a745" if tot_gain >= 0 else "#dc3545"
+            st.title("📊 Analisi Avanzata")
+            st.plotly_chart(crea_tachimetro(tot_gain), use_container_width=True)
+            
+            st.markdown(f"""
+                <div style='text-align: center; margin-top: 0px; margin-bottom: 20px;'>
+                    <p style='margin:0; font-size: 18px; font-weight: bold; color: {color_stat};'>UTILE ATTUALE: € {tot_gain:.3f}</p>
+                    <p style='margin:0; font-size: 18px; font-weight: bold; color: {color_stat};'>MEDIA RENDIMENTO: {media_perc:.3f}%</p>
                 </div>
-            </div>
-        </div>
+                """, unsafe_allow_html=True)
+            
+            st.divider()
+            fig_bar = px.bar(df, x='Nome', y='Gain', color='Gain', color_continuous_scale='RdYlGn', text_auto='.3f')
+            st.plotly_chart(fig_bar, use_container_width=True)
 
-        <div id="resultsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
-    </main>
+    if st.sidebar.button("Logout"):
+        st.session_state["p_ok"] = False
+        st.rerun()
 
-    <script>
-        const apiKey = ""; 
-        const charts = {};
-
-        async function fetchMarketData(isin) {
-            const prompt = `Analizza rigorosamente sulla Borsa di Milano (BIT) il titolo con ISIN \${isin}. Rispondi in JSON: {"nome": "string", "prezzoTesto": "string", "prezzoNumero": number, "segnale": "COMPRA"|"VENDI"|"MANTIENI", "storico": [6 numeri], "motivo": "string"}`;
-            const payload = { contents: [{ parts: [{ text: prompt }] }], tools: [{ "google_search": {} }] };
-
-            for (let i = 0; i < 3; i++) {
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=\${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const data = await response.json();
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    return JSON.parse(text.match(/\{[\\s\\S]*\}/)[0]);
-                } catch (e) { await new Promise(r => setTimeout(r, 1000)); }
-            }
-        }
-
-        function renderChart(canvasId, storico, segnale) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            const color = segnale === 'COMPRA' ? '#10b981' : (segnale === 'VENDI' ? '#ef4444' : '#f59e0b');
-            if (charts[canvasId]) charts[canvasId].destroy();
-            charts[canvasId] = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['M1', 'M2', 'M3', 'M4', 'M5', 'Oggi'],
-                    datasets: [{ data: storico, borderColor: color, fill: false, tension: 0.3 }]
-                },
-                options: { plugins: { legend: { display: false } }, scales: { x: { display: false } } }
-            });
-        }
-
-        async function analyzeAll() {
-            const btn = document.getElementById('btnAnalyze');
-            const icon = document.getElementById('syncIcon');
-            btn.disabled = true; icon.classList.add('animate-spin');
-            const grid = document.getElementById('resultsGrid');
-            grid.innerHTML = '';
-
-            for (let i = 1; i <= 3; i++) {
-                const isin = document.getElementById(`isin\${i}`).value.trim();
-                const qty = parseFloat(document.getElementById(`qty\${i}`).value) || 0;
-                if (!isin) continue;
-
-                const cardId = `card-\${i}`;
-                const canvasId = `chart-\${i}`;
-                grid.innerHTML += `<div id="\${cardId}" class="bg-white rounded-3xl p-6 border border-neutral-200 card-shadow flex flex-col h-[520px]">
-                    <div class="flex justify-between items-center mb-4">
-                        <span class="px-3 py-1 bg-neutral-100 rounded-lg text-[10px] font-bold font-mono text-neutral-500">\${isin}</span>
-                        <div id="status-\${i}" class="loader"></div>
-                    </div>
-                    <div id="content-\${i}" class="opacity-0 transition-opacity duration-500 flex flex-col h-full">
-                        <h3 id="nome-\${i}" class="text-sm font-bold text-neutral-800 mb-1 leading-tight h-10 overflow-hidden">...</h3>
-                        <span id="prezzo-\${i}" class="text-2xl font-black text-neutral-900">...</span>
-                        <div class="mt-2 p-2 bg-neutral-50 rounded-xl border border-neutral-100 flex justify-between">
-                            <span class="text-[10px] text-neutral-400 uppercase font-bold">Totale: <span id="totale-\${i}" class="text-indigo-600">€ 0,00</span></span>
-                        </div>
-                        <div class="flex-grow my-4"><canvas id="\${canvasId}"></canvas></div>
-                        <div id="signal-box-\${i}" class="py-2 rounded-xl mb-4 text-center font-black text-[10px] tracking-widest uppercase">---</div>
-                        <p id="motivo-\${i}" class="text-[10px] text-neutral-500 italic border-t pt-2">...</p>
-                    </div>
-                </div>`;
-
-                try {
-                    const data = await fetchMarketData(isin);
-                    document.getElementById(`status-\${i}`).style.display = 'none';
-                    document.getElementById(`content-\${i}`).classList.remove('opacity-0');
-                    document.getElementById(`nome-\${i}`).innerText = data.nome;
-                    document.getElementById(`prezzo-\${i}`).innerText = data.prezzoTesto;
-                    document.getElementById(`motivo-\${i}`).innerText = data.motivo;
-                    document.getElementById(`totale-\${i}`).innerText = (data.prezzoNumero * qty).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
-                    const sBox = document.getElementById(`signal-box-\${i}`);
-                    sBox.innerText = data.segnale;
-                    sBox.className = `py-2 rounded-xl mb-4 text-center font-black text-[10px] tracking-widest uppercase signal-\${data.segnale.toLowerCase()}`;
-                    renderChart(canvasId, data.storico, data.segnale);
-                } catch (e) { console.error(e); }
-            }
-            btn.disabled = false; icon.classList.remove('animate-spin');
-        }
-        window.onload = analyzeAll;
-    </script>
-</body>
-</html>
-"""
-
-# Rendering dell'app nel componente Streamlit
-components.html(html_content, height=1500, scrolling=True)
