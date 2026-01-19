@@ -1,3 +1,12 @@
+import streamlit as st
+import streamlit.components.v1 as components
+
+# Configurazione pagina Streamlit
+st.set_page_config(layout="wide", page_title="BITMILANO AI")
+
+# Definizione del codice HTML/CSS/JS come stringa Python
+# L'uso delle triple virgolette previene errori di interpretazione dei selettori CSS
+html_content = """
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -9,7 +18,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; }
         .card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
         .signal-compra { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
         .signal-vendi { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
@@ -55,31 +64,25 @@
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Titolo 1 -->
                 <div class="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-3">
                     <label class="text-[11px] font-bold text-neutral-400 uppercase ml-1">Asset 1</label>
-                    <input type="text" id="isin1" value="JE00B1VS3770" placeholder="ISIN" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl focus:ring-2 focus:ring-black outline-none font-mono text-sm">
-                    <input type="number" id="qty1" value="10" placeholder="Quantità" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl focus:ring-2 focus:ring-black outline-none text-sm">
+                    <input type="text" id="isin1" value="JE00B1VS3770" placeholder="ISIN" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl outline-none font-mono text-sm">
+                    <input type="number" id="qty1" value="10" placeholder="Quantità" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl outline-none text-sm">
                 </div>
-                <!-- Titolo 2 -->
                 <div class="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-3">
                     <label class="text-[11px] font-bold text-neutral-400 uppercase ml-1">Asset 2</label>
-                    <input type="text" id="isin2" value="JE00B1VS3333" placeholder="ISIN" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl focus:ring-2 focus:ring-black outline-none font-mono text-sm">
-                    <input type="number" id="qty2" value="5" placeholder="Quantità" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl focus:ring-2 focus:ring-black outline-none text-sm">
+                    <input type="text" id="isin2" value="JE00B1VS3333" placeholder="ISIN" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl outline-none font-mono text-sm">
+                    <input type="number" id="qty2" value="5" placeholder="Quantità" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl outline-none text-sm">
                 </div>
-                <!-- Titolo 3 -->
                 <div class="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 space-y-3">
                     <label class="text-[11px] font-bold text-neutral-400 uppercase ml-1">Asset 3</label>
-                    <input type="text" id="isin3" value="" placeholder="ISIN" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl focus:ring-2 focus:ring-black outline-none font-mono text-sm">
-                    <input type="number" id="qty3" value="" placeholder="Quantità" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl focus:ring-2 focus:ring-black outline-none text-sm">
+                    <input type="text" id="isin3" value="" placeholder="ISIN" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl outline-none font-mono text-sm">
+                    <input type="number" id="qty3" value="" placeholder="Quantità" class="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl outline-none text-sm">
                 </div>
             </div>
         </div>
 
-        <!-- Risultati -->
-        <div id="resultsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <!-- Cards dinamiche -->
-        </div>
+        <div id="resultsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
     </main>
 
     <script>
@@ -87,44 +90,20 @@
         const charts = {};
 
         async function fetchMarketData(isin) {
-            const prompt = `Analizza rigorosamente sulla Borsa di Milano (BIT) il titolo con ISIN ${isin}.
-            1. Nome completo del titolo/ETF/ETC.
-            2. Prezzo attuale in EURO (€) come stringa (es. "123,45 €").
-            3. Estrai solo il valore numerico del prezzo per calcoli (es. 123.45).
-            4. Segnale operativo: "COMPRA", "VENDI" o "MANTIENI".
-            5. Andamento storico mensile (6 numeri).
-            6. Motivazione strategica in italiano.
-            Rispondi solo in JSON: {
-                "nome": "string",
-                "prezzoTesto": "string",
-                "prezzoNumero": number,
-                "segnale": "COMPRA"|"VENDI"|"MANTIENI",
-                "storico": [num1, num2, num3, num4, num5, num6],
-                "motivo": "string"
-            }`;
+            const prompt = `Analizza rigorosamente sulla Borsa di Milano (BIT) il titolo con ISIN \${isin}. Rispondi in JSON: {"nome": "string", "prezzoTesto": "string", "prezzoNumero": number, "segnale": "COMPRA"|"VENDI"|"MANTIENI", "storico": [6 numeri], "motivo": "string"}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }], tools: [{ "google_search": {} }] };
 
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                tools: [{ "google_search": {} }]
-            };
-
-            let delay = 1000;
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 3; i++) {
                 try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=\${apiKey}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
                     const data = await response.json();
                     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    const cleanJson = text.match(/\{[\s\S]*\}/)[0];
-                    return JSON.parse(cleanJson);
-                } catch (e) {
-                    if (i === 4) throw e;
-                    await new Promise(r => setTimeout(r, delay));
-                    delay *= 2;
-                }
+                    return JSON.parse(text.match(/\{[\\s\\S]*\}/)[0]);
+                } catch (e) { await new Promise(r => setTimeout(r, 1000)); }
             }
         }
 
@@ -136,107 +115,63 @@
                 type: 'line',
                 data: {
                     labels: ['M1', 'M2', 'M3', 'M4', 'M5', 'Oggi'],
-                    datasets: [{
-                        data: storico,
-                        borderColor: color,
-                        backgroundColor: 'transparent',
-                        borderWidth: 2,
-                        pointRadius: 3,
-                        tension: 0.3
-                    }]
+                    datasets: [{ data: storico, borderColor: color, fill: false, tension: 0.3 }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { x: { display: false }, y: { ticks: { font: { size: 8 } } } }
-                }
+                options: { plugins: { legend: { display: false } }, scales: { x: { display: false } } }
             });
         }
 
         async function analyzeAll() {
             const btn = document.getElementById('btnAnalyze');
             const icon = document.getElementById('syncIcon');
-            btn.disabled = true;
-            icon.classList.add('animate-spin');
-
+            btn.disabled = true; icon.classList.add('animate-spin');
             const grid = document.getElementById('resultsGrid');
             grid.innerHTML = '';
 
             for (let i = 1; i <= 3; i++) {
-                const isin = document.getElementById(`isin${i}`).value.trim();
-                const qty = parseFloat(document.getElementById(`qty${i}`).value) || 0;
+                const isin = document.getElementById(`isin\${i}`).value.trim();
+                const qty = parseFloat(document.getElementById(`qty\${i}`).value) || 0;
                 if (!isin) continue;
 
-                const cardId = `card-${i}`;
-                const canvasId = `chart-${i}`;
-                
-                grid.innerHTML += `
-                    <div id="${cardId}" class="bg-white rounded-3xl p-6 border border-neutral-200 card-shadow flex flex-col h-[560px]">
-                        <div class="flex justify-between items-center mb-4">
-                            <span class="px-3 py-1 bg-neutral-100 rounded-lg text-[10px] font-bold font-mono text-neutral-500">${isin}</span>
-                            <div id="status-${i}" class="loader"></div>
-                        </div>
-                        
-                        <div id="content-${i}" class="opacity-0 transition-opacity duration-500 flex flex-col h-full">
-                            <h3 id="nome-${i}" class="text-sm font-bold text-neutral-800 mb-1 leading-tight h-10 overflow-hidden">...</h3>
-                            
-                            <div class="flex flex-col mb-4">
-                                <span id="prezzo-${i}" class="text-2xl font-black text-neutral-900">...</span>
-                                <div class="flex justify-between items-center mt-2 p-2 bg-neutral-50 rounded-xl border border-neutral-100">
-                                    <div class="flex flex-col">
-                                        <span class="text-[9px] font-bold text-neutral-400 uppercase">Quantità</span>
-                                        <span class="text-xs font-bold text-neutral-700">${qty} pz</span>
-                                    </div>
-                                    <div class="flex flex-col text-right">
-                                        <span class="text-[9px] font-bold text-neutral-400 uppercase">Valore Totale</span>
-                                        <span id="totale-${i}" class="text-xs font-black text-indigo-600">€ 0,00</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex-grow mb-4">
-                                <p class="text-[10px] font-bold text-neutral-400 uppercase mb-2 tracking-widest text-center">Trend Milano</p>
-                                <div class="h-32 w-full">
-                                    <canvas id="${canvasId}"></canvas>
-                                </div>
-                            </div>
-
-                            <div id="signal-box-${i}" class="py-3 rounded-2xl mb-4 text-center font-black text-xs tracking-[0.2em] uppercase">
-                                ---
-                            </div>
-                            
-                            <p id="motivo-${i}" class="text-[11px] text-neutral-500 italic leading-snug border-t pt-3">...</p>
-                        </div>
+                const cardId = `card-\${i}`;
+                const canvasId = `chart-\${i}`;
+                grid.innerHTML += `<div id="\${cardId}" class="bg-white rounded-3xl p-6 border border-neutral-200 card-shadow flex flex-col h-[520px]">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="px-3 py-1 bg-neutral-100 rounded-lg text-[10px] font-bold font-mono text-neutral-500">\${isin}</span>
+                        <div id="status-\${i}" class="loader"></div>
                     </div>
-                `;
+                    <div id="content-\${i}" class="opacity-0 transition-opacity duration-500 flex flex-col h-full">
+                        <h3 id="nome-\${i}" class="text-sm font-bold text-neutral-800 mb-1 leading-tight h-10 overflow-hidden">...</h3>
+                        <span id="prezzo-\${i}" class="text-2xl font-black text-neutral-900">...</span>
+                        <div class="mt-2 p-2 bg-neutral-50 rounded-xl border border-neutral-100 flex justify-between">
+                            <span class="text-[10px] text-neutral-400 uppercase font-bold">Totale: <span id="totale-\${i}" class="text-indigo-600">€ 0,00</span></span>
+                        </div>
+                        <div class="flex-grow my-4"><canvas id="\${canvasId}"></canvas></div>
+                        <div id="signal-box-\${i}" class="py-2 rounded-xl mb-4 text-center font-black text-[10px] tracking-widest uppercase">---</div>
+                        <p id="motivo-\${i}" class="text-[10px] text-neutral-500 italic border-t pt-2">...</p>
+                    </div>
+                </div>`;
 
                 try {
                     const data = await fetchMarketData(isin);
-                    document.getElementById(`status-${i}`).style.display = 'none';
-                    document.getElementById(`content-${i}`).classList.remove('opacity-0');
-                    document.getElementById(`nome-${i}`).innerText = data.nome;
-                    document.getElementById(`prezzo-${i}`).innerText = data.prezzoTesto;
-                    document.getElementById(`motivo-${i}`).innerText = `"${data.motivo}"`;
-                    
-                    const totale = (data.prezzoNumero * qty).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
-                    document.getElementById(`totale-${i}`).innerText = totale;
-                    
-                    const segnale = data.segnale.toUpperCase();
-                    const sBox = document.getElementById(`signal-box-${i}`);
-                    sBox.innerText = segnale;
-                    sBox.className = `py-3 rounded-2xl mb-4 text-center font-black text-xs tracking-[0.2em] uppercase signal-${segnale.toLowerCase()}`;
-                    renderChart(canvasId, data.storico, segnale);
-                } catch (err) {
-                    document.getElementById(cardId).innerHTML = `<div class="flex flex-center h-full text-neutral-300 italic text-xs">Errore dati</div>`;
-                }
+                    document.getElementById(`status-\${i}`).style.display = 'none';
+                    document.getElementById(`content-\${i}`).classList.remove('opacity-0');
+                    document.getElementById(`nome-\${i}`).innerText = data.nome;
+                    document.getElementById(`prezzo-\${i}`).innerText = data.prezzoTesto;
+                    document.getElementById(`motivo-\${i}`).innerText = data.motivo;
+                    document.getElementById(`totale-\${i}`).innerText = (data.prezzoNumero * qty).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+                    const sBox = document.getElementById(`signal-box-\${i}`);
+                    sBox.innerText = data.segnale;
+                    sBox.className = `py-2 rounded-xl mb-4 text-center font-black text-[10px] tracking-widest uppercase signal-\${data.segnale.toLowerCase()}`;
+                    renderChart(canvasId, data.storico, data.segnale);
+                } catch (e) { console.error(e); }
             }
-            btn.disabled = false;
-            icon.classList.remove('animate-spin');
+            btn.disabled = false; icon.classList.remove('animate-spin');
         }
-
         window.onload = analyzeAll;
     </script>
 </body>
 </html>
+"""
+
 
